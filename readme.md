@@ -44,7 +44,7 @@ Arguments:
 Test
 ==
 
-1. Install [DokanY]() driver. You can download the binaries from [here](http://files.twd2.net/dokany_binaries/), and the document is [here](http://files.twd2.net/dokany_binaries/readme.html).
+1. Install [DokanY](https://github.com/Maxhy/dokany) driver. You can download the binaries from [here](http://files.twd2.net/dokany_binaries/), and the document is [here](http://files.twd2.net/dokany_binaries/readme.html).
 
 1. Run ```IFS1Control mkfs -f test -l 1G``` and you will find a file named test generated.
 
