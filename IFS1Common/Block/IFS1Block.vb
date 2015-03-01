@@ -43,7 +43,12 @@ Public Class IFS1Block
     Public Overridable Sub Write(s As Stream)
         BinaryHelper.WriteInt32LE(s, used)
         BinaryHelper.WriteInt32LE(s, type)
-        s.Write(rawdata, 0, 65528)
+        If rawdata.Length > 0 Then
+            s.Write(rawdata, 0, rawdata.Length)
+            s.Seek(65528 - rawdata.Length, SeekOrigin.Current)
+        Else
+            s.Seek(65528, SeekOrigin.Current)
+        End If
     End Sub
 
     Public Overridable Function Clone() As IFS1Block

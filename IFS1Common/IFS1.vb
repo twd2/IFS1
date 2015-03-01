@@ -435,8 +435,13 @@ Partial Public Class IFS1
                 lastdatablk.Length = IFS1.DATA_BLOCK_DATA_LEN
                 EnqueueBlockChange(lastdatablk)
             End If
-            'Dim usedid As New List(Of UInt32)
+
+            If newblockcount > IFS1FileBlock.SUB_BLOCK_COUNT Then
+                Throw New IFS1AllocationFailedException("Cannot alloc sub block")
+            End If
+
             Dim newblkids = AllocBlock(deltacount)
+
             For i = oldblockcount - 1 + 1 To newblockcount - 1
                 Dim newblkid = newblkids(i - (oldblockcount - 1 + 1))
 
@@ -451,7 +456,7 @@ Partial Public Class IFS1
 
                 'ReDim datablk.data(-1)
                 datablk.used = 1
-
+               
                 blk.SubBlockIDs(i) = newblkid
 
                 EnqueueBlockChange(datablk)
@@ -1058,8 +1063,45 @@ Partial Public Class IFS1
         Return flag
     End Function
 
-    Public Sub MakeFS()
-        'TODO
+    Public Shared Sub MakeFS(filename As String, length As ULong)
+        Using fs As New FileStream(filename, FileMode.Create, FileAccess.Write)
+            MakeFS(fs, length)
+        End Using
+    End Sub
+
+    Public Shared Sub MakeFS(s As Stream, length As ULong)
+        Dim blockcount = Math.Floor(length / BLOCK_LEN)
+
+        s.Seek(510, SeekOrigin.Begin)
+        s.WriteByte(&H55)
+        s.WriteByte(&HAA)
+
+        Dim rootblock As New IFS1DirBlock
+        rootblock.Name = "/"
+        rootblock.used = 1
+        For i = 0 To rootblock.SubBlockIDs.Length - 1
+            rootblock.SubBlockIDs(i) = INVALID_BLOCK_ID
+        Next
+        s.Seek(FIRST_BLOCK_ID * BLOCK_LEN, SeekOrigin.Begin)
+        rootblock.Write(s)
+
+        Console.Write("Writing Blocks 1/{0}", blockcount)
+
+        Dim sw As New Stopwatch
+        sw.Start()
+        For i = FIRST_BLOCK_ID + 1 To FIRST_BLOCK_ID + blockcount - 1
+            Dim block As New IFS1Block
+            block.used = 0
+            s.Seek(i * BLOCK_LEN, SeekOrigin.Begin)
+            block.Write(s)
+            If i Mod 10 = 0 OrElse i = FIRST_BLOCK_ID + blockcount - 1 Then
+                Console.Write("{0}Writing Blocks {1}/{2}                      ", Chr(13), i - FIRST_BLOCK_ID + 1, blockcount)
+            End If
+        Next
+        sw.Stop()
+        Console.WriteLine()
+        Console.WriteLine("done {0}ms", sw.ElapsedMilliseconds)
+        s.Flush()
     End Sub
 
 

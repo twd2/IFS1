@@ -25,7 +25,9 @@ Public Class IFS1DirBlock
 
     'Public reserve(744 - 1) As Byte
 
-    Private blockids(16128 - 1) As UInt32
+    Public Const SUB_BLOCK_COUNT = 16128
+
+    Private blockids(SUB_BLOCK_COUNT - 1) As UInt32
 
     Public Sub New()
         type = BlockType.Dir
@@ -43,7 +45,7 @@ Public Class IFS1DirBlock
         r.create = CMOSDateTime.Read(s)
         r.change = CMOSDateTime.Read(s)
         s.Seek(744, SeekOrigin.Current) 'skip
-        For i = 0 To 16128 - 1
+        For i = 0 To SUB_BLOCK_COUNT - 1
             r.blockids(i) = BinaryHelper.ReadUInt32LE(s)
         Next
         Return r
@@ -56,7 +58,7 @@ Public Class IFS1DirBlock
         create.Write(s)
         change.Write(s)
         s.Seek(744, SeekOrigin.Current)
-        For i = 0 To 16128 - 1
+        For i = 0 To SUB_BLOCK_COUNT - 1
             BinaryHelper.WriteUInt32LE(s, blockids(i))
         Next
     End Sub

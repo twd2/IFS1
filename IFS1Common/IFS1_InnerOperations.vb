@@ -44,6 +44,9 @@ Partial Public Class IFS1
                 End If
             End If
         Next
+        If index < count Then
+            Throw New IFS1AllocationFailedException(count.ToString() + " blocks")
+        End If
         Return blocks
     End Function
 

@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "IFS1Common", "IFS1Common\IFS1Common.vbproj", "{E1921822-8228-496C-9DCE-581831F6983E}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "IFS1Control", "IFS1Console\IFS1Control.vbproj", "{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "IFS1Control", "IFS1Control\IFS1Control.vbproj", "{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

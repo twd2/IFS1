@@ -42,7 +42,9 @@ Public Class IFS1FileBlock
 
     'Public reserve(736 - 1) As Byte
 
-    Private blockids(16128 - 1) As UInt32
+    Public Const SUB_BLOCK_COUNT = 16128
+
+    Private blockids(SUB_BLOCK_COUNT - 1) As UInt32
 
     Public Sub New()
         type = BlockType.File
@@ -62,7 +64,7 @@ Public Class IFS1FileBlock
         r.change = CMOSDateTime.Read(s)
         r.propertydata = BinaryHelper.ReadUInt32LE(s)
         s.Seek(736, SeekOrigin.Current) 'skip
-        For i = 0 To 16128 - 1
+        For i = 0 To SUB_BLOCK_COUNT - 1
             r.blockids(i) = BinaryHelper.ReadUInt32LE(s)
         Next
         Return r
@@ -77,7 +79,7 @@ Public Class IFS1FileBlock
         change.Write(s)
         BinaryHelper.WriteUInt32LE(s, propertydata)
         s.Seek(736, SeekOrigin.Current)
-        For i = 0 To 16128 - 1
+        For i = 0 To SUB_BLOCK_COUNT - 1
             BinaryHelper.WriteUInt32LE(s, blockids(i))
         Next
     End Sub
