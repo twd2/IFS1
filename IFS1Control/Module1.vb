@@ -191,8 +191,6 @@ Module Module1
     End Sub
 
     Sub Main(args As String())
-        Test()
-        Return
         If args.Length <= 0 Then
             PrintUsage()
             Return
@@ -235,11 +233,6 @@ Module Module1
             'End Using
             Mount(ifs, "S")
         End Using
-        'Using fs As New FileStream(argobj("Filename").params(0), FileMode.Open, fa)
-        '    Dim ifs As New IFS1(logger, fs, opt)
-        '    'ifs.ReadOnlyMount = True
-        '    Mount(ifs, argobj("MountPoint").params(0))
-        'End Using
     End Sub
 
     Sub Mount(ifs As IFS1, symbol As Char)
