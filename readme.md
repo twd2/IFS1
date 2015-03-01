@@ -1,7 +1,7 @@
 IFS1
 ==
 
-Yet another IFS1 implementation.
+Yet another implementation of IFS1.
 
 IFS1 is the file system for [Ihsoh/isystemx86](https://github.com/Ihsoh/isystemx86).
 
