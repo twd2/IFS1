@@ -85,11 +85,13 @@
     <Compile Include="Block\IFS1BlockWithIDs.vb" />
     <Compile Include="Block\IFS1BlockWithLength.vb" />
     <Compile Include="IFS1FileStream.vb" />
+    <Compile Include="IFS1MountOptions.vb" />
     <Compile Include="IFS1ObjectContext.vb" />
     <Compile Include="Exception\IFS1PathTooLongException.vb" />
     <Compile Include="IFS1Transaction.vb" />
     <Compile Include="Exception\IFS1TransactionCommittedException.vb" />
     <Compile Include="IFS1_InnerOperations.vb" />
+    <Compile Include="Logger.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>

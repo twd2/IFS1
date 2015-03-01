@@ -12,20 +12,20 @@ Public Class IFS1Driver
     End Sub
 
     Public Function Cleanup(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.Cleanup
-        'Console.WriteLine("Cleanup: " + filename)
+        ' ifs.Logger.WriteLine("Cleanup: " + filename)
         ifs.Sync()
         Return 0
     End Function
 
     Public Function CloseFile(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.CloseFile
-        Console.WriteLine("CloseFile: " + filename)
+        ifs.Logger.WriteLine("CloseFile: " + filename)
         ifs.Sync()
         Return 0
     End Function
 
     Public Function CreateDirectory(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.CreateDirectory
         Try
-            Console.WriteLine("CreateDirectory: " + filename)
+            ifs.Logger.WriteLine("CreateDirectory: " + filename)
             ifs.CreateDir(filename)
             ifs.Sync()
             Return 0
@@ -36,7 +36,7 @@ Public Class IFS1Driver
 
     Public Function CreateFile(filename As String, access As IO.FileAccess, share As IO.FileShare, mode As IO.FileMode, options As IO.FileOptions, info As DokanFileInfo) As Integer Implements DokanOperations.CreateFile
         Try
-            Console.WriteLine("CreateFile: " + filename)
+            ifs.Logger.WriteLine("CreateFile: " + filename)
             If ifs.DirExists(filename) Then
                 info.IsDirectory = True
                 Return 0
@@ -59,12 +59,12 @@ Public Class IFS1Driver
 
     Public Function DeleteDirectory(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.DeleteDirectory
         Try
-            Console.WriteLine("DeleteDirectory: " + filename)
+            ifs.Logger.WriteLine("DeleteDirectory: " + filename)
             Try
                 ifs.DeleteDir(filename)
                 ifs.Sync()
             Catch ex0 As Exception
-                Console.WriteLine("DeleteDirectory(SoftLink): " + filename)
+                ifs.Logger.WriteLine("DeleteDirectory(SoftLink): " + filename)
                 ifs.DeleteSoftLink(filename)
                 ifs.Sync()
             End Try
@@ -76,12 +76,12 @@ Public Class IFS1Driver
 
     Public Function DeleteFile(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.DeleteFile
         Try
-            Console.WriteLine("DeleteFile: " + filename)
+            ifs.Logger.WriteLine("DeleteFile: " + filename)
             Try
                 ifs.DeleteFile(filename)
                 ifs.Sync()
             Catch ex0 As Exception
-                Console.WriteLine("DeleteFile(SoftLink): " + filename)
+                ifs.Logger.WriteLine("DeleteFile(SoftLink): " + filename)
                 ifs.DeleteSoftLink(filename)
                 ifs.Sync()
             End Try
@@ -97,7 +97,7 @@ Public Class IFS1Driver
             If filename.Last <> "/" Then
                 filename += "/"
             End If
-            Console.WriteLine("FindFiles: " + filename)
+            ifs.Logger.WriteLine("FindFiles: " + filename)
             Dim blk As IFS1DirBlock = ifs.GetBlockByPathStrict(filename)
             Dim subblks = ifs.GetSubBlocks(blk)
             For Each subblk In subblks
@@ -123,7 +123,7 @@ Public Class IFS1Driver
 
     Public Function GetFileInformation(filename As String, fi As FileInformation, info As DokanFileInfo) As Integer Implements DokanOperations.GetFileInformation
         Try
-            Console.WriteLine("GetFileInformation: " + filename)
+            ifs.Logger.WriteLine("GetFileInformation: " + filename)
             Dim blk = ifs.GetBlockByPath(filename)
 
             GetBlockInfo(fi, blk)
@@ -141,7 +141,7 @@ Public Class IFS1Driver
 
     Public Function MoveFile(filename As String, newname As String, replace As Boolean, info As DokanFileInfo) As Integer Implements DokanOperations.MoveFile
         Try
-            Console.WriteLine("MoveFile: " + filename)
+            ifs.Logger.WriteLine("MoveFile: " + filename)
             ifs.Move(filename, newname)
             ifs.Sync()
             Return 0
@@ -160,7 +160,7 @@ Public Class IFS1Driver
 
     Public Function ReadFile(filename As String, buffer() As Byte, ByRef readBytes As UInteger, offset As Long, info As DokanFileInfo) As Integer Implements DokanOperations.ReadFile
         Try
-            'Console.WriteLine("ReadFile: " + filename)
+            ' ifs.Logger.WriteLine("ReadFile: " + filename)
             readBytes = ifs.Read(filename, buffer, offset, 0, buffer.Length)
             Return 0
         Catch ex As Exception
@@ -170,7 +170,7 @@ Public Class IFS1Driver
 
     Public Function SetAllocationSize(filename As String, length As Long, info As DokanFileInfo) As Integer Implements DokanOperations.SetAllocationSize
         Try
-            Console.WriteLine("SetAllocationSize: " + filename)
+            ifs.Logger.WriteLine("SetAllocationSize: " + filename)
             Dim fileblk = ifs.GetBlockByPathStrict(filename, IFS1Block.BlockType.File)
             ifs.Resize(fileblk, length)
             ifs.Sync()
@@ -182,7 +182,7 @@ Public Class IFS1Driver
 
     Public Function SetEndOfFile(filename As String, length As Long, info As DokanFileInfo) As Integer Implements DokanOperations.SetEndOfFile
         Try
-            Console.WriteLine("SetEndOfFile: " + filename)
+            ifs.Logger.WriteLine("SetEndOfFile: " + filename)
             Dim fileblk = ifs.GetBlockByPathStrict(filename, IFS1Block.BlockType.File)
             ifs.Resize(fileblk, length)
             ifs.Sync()
@@ -199,7 +199,7 @@ Public Class IFS1Driver
 
     Public Function SetFileTime(filename As String, ctime As Date?, atime As Date?, mtime As Date?, info As DokanFileInfo) As Integer Implements DokanOperations.SetFileTime
         Try
-            Console.WriteLine("SetFileTime: " + filename)
+            ifs.Logger.WriteLine("SetFileTime: " + filename)
             ifs.SetTime(filename, ctime, atime, mtime)
             ifs.Sync()
             Return 0
@@ -234,7 +234,7 @@ Public Class IFS1Driver
     End Function
 
     Private Sub GetBlockInfo(fi As FileInformation, blk As IFS1Block)
-        If ifs.ReadOnlyMount Then
+        If ifs.opt.ReadOnlyMount Then
             fi.Attributes = fi.Attributes Or FileAttributes.ReadOnly
         End If
 

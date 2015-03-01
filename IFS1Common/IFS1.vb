@@ -13,8 +13,9 @@ Partial Public Class IFS1
 
     Private CurrentTransaction As IFS1Transaction = Nothing
 
-    Public ReadOnlyMount As Boolean = False
-    Public AutoSync As Boolean = False
+    Public Logger As LoggerWrapper
+
+    Public opt As New IFS1MountOptions
 
     Public Const DATA_BLOCK_DATA_LEN = 65024
     Public Const BLOCK_LEN = 64 * 1024
@@ -34,62 +35,27 @@ Partial Public Class IFS1
         End Get
     End Property
 
-    Public Sub New(s As Stream, Optional check As Boolean = False, Optional repair As Boolean = False)
+    Public Sub New(logger As LoggerWrapper, s As Stream, opt As IFS1MountOptions)
         Me._s = s
+        Me.Logger = logger
+        Me.opt = opt
 
         Dim sw As New Stopwatch
 
-        Console.WriteLine("Loading Blocks cache")
+        logger.WriteLine("Loading Blocks cache")
         sw.Start()
         LoadBlocksCache()
         RootBlock = BlocksCache(FIRST_BLOCK_ID)
         sw.Stop()
-        Console.WriteLine("Load Blocks cache done {0}ms", sw.ElapsedMilliseconds)
+        logger.WriteLine("Load Blocks cache done {0}ms", sw.ElapsedMilliseconds)
 
-        If check Then
-            Console.WriteLine("Checking FS")
+        If opt.Check Then
+            logger.WriteLine("Checking FS")
             sw.Restart()
-            CheckFS(repair)
+            CheckFS(opt.Repair)
             sw.Stop()
-            Console.WriteLine("Check FS done {0}ms", sw.ElapsedMilliseconds)
+            logger.WriteLine("Check FS done {0}ms", sw.ElapsedMilliseconds)
         End If
-
-        'Try
-        '    CreateSoftLink("/root", "/")
-        'Catch ex As Exception
-        '    Console.WriteLine(ex.ToString())
-        'End Try
-        'Try
-        '    CreateSoftLink("/isystem/hello", "/isystem/")
-        'Catch ex As Exception
-        '    Console.WriteLine(ex.ToString())
-        'End Try
-        'Try
-        '    CreateSoftLink("/isystem/hello.sl.txt", "/hello.txt")
-        'Catch ex As Exception
-        '    Console.WriteLine(ex.ToString())
-        'End Try
-        'Try
-        '    CreateSoftLink("/tolink.txt", "/isystem/hello.sl.txt")
-        'Catch ex As Exception
-        '    Console.WriteLine(ex.ToString())
-        'End Try
-        'Try
-        '    CreateSoftLink("/tolink2.txt", "/tolink.txt")
-        'Catch ex As Exception
-        '    Console.WriteLine(ex.ToString())
-        'End Try
-        'Try
-        '    CreateSoftLink("/tolink", "/root")
-        'Catch ex As Exception
-        '    Console.WriteLine(ex.ToString())
-        'End Try
-        'Try
-        '    CreateSoftLink("/tolink2", "/tolink")
-        'Catch ex As Exception
-        '    Console.WriteLine(ex.ToString())
-        'End Try
-        'Sync()
     End Sub
 
     ''' <summary>
@@ -111,7 +77,11 @@ Partial Public Class IFS1
             BlocksCache.Add(blk)
             blk = ReadBlock(False)
             blkid += 1
+            If _s.Position Mod 233 * 512 = 0 Then
+                Console.Write("{0}Loading Blocks {1}/{2}                      ", Chr(13), CLng(_s.Position / BLOCK_LEN), CLng(_s.Length / BLOCK_LEN))
+            End If
         Loop
+        Console.WriteLine()
     End Sub
 
     ''' <summary>
@@ -129,7 +99,7 @@ Partial Public Class IFS1
     ''' <param name="newblock"></param>
     ''' <remarks></remarks>
     Public Sub EnqueueBlockChange(newblock As IFS1Block)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         SyncLock Me
@@ -146,7 +116,7 @@ Partial Public Class IFS1
             End If
         End SyncLock
 
-        If AutoSync Then
+        If opt.AutoSync Then
             Sync()
         End If
     End Sub
@@ -179,6 +149,11 @@ Partial Public Class IFS1
     ''' </summary>
     ''' <remarks></remarks>
     Public Sub Sync()
+        Dim issync = NeedSync
+        If issync Then
+            Logger.WriteLine("Syncing...")
+        End If
+
         SyncLock Me
             Do While pendingBlocks.Count > 0
                 Dim blk = pendingBlocks.Dequeue()
@@ -186,6 +161,10 @@ Partial Public Class IFS1
             Loop
             _s.Flush()
         End SyncLock
+
+        If issync Then
+            Logger.WriteLine("Sync done.")
+        End If
     End Sub
 
     ''' <summary>
@@ -227,7 +206,7 @@ Partial Public Class IFS1
     End Function
 
     Public Function GetBlockByPath(path As String) As IFS1Block
-         Return GetBlockByPathStrict(path, IFS1Block.BlockType.Raw)
+        Return GetBlockByPathStrict(path, IFS1Block.BlockType.Raw)
     End Function
 
     Public Function GetBlockByPathStrict(path As String, Optional nosoftlink As Boolean = False, Optional deep As Long = 0) As IFS1Block
@@ -363,7 +342,7 @@ Partial Public Class IFS1
     End Function
 
     Private Sub Compress(blk As IFS1FileBlock, newsize As UInt32)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         If newsize = blk.Length Then
@@ -412,7 +391,7 @@ Partial Public Class IFS1
     End Sub
 
     Private Sub Expand(blk As IFS1FileBlock, newsize As UInt32, Optional zerodata As Boolean = False)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         If newsize = blk.Length Then
@@ -465,7 +444,7 @@ Partial Public Class IFS1
 
                 'ReDim datablk.data(-1)
                 datablk.used = 1
-               
+
                 blk.SubBlockIDs(i) = newblkid
 
                 EnqueueBlockChange(datablk)
@@ -478,7 +457,7 @@ Partial Public Class IFS1
     End Sub
 
     Public Sub Resize(blk As IFS1FileBlock, newsize As UInt32)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         If newsize > blk.Length Then
@@ -489,7 +468,7 @@ Partial Public Class IFS1
     End Sub
 
     Public Function Write(path As String, buffer As Byte(), fileoffset As UInt32, bufferoffset As UInt32, count As UInt32) As UInt32
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         Dim blk As IFS1FileBlock = GetBlockByPathStrict(path, IFS1Block.BlockType.File)
@@ -538,7 +517,7 @@ Partial Public Class IFS1
     End Function
 
     Private Sub Unlink(parent As IFS1Block, blkid As UInt32)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
 
@@ -572,7 +551,7 @@ Partial Public Class IFS1
     End Sub
 
     Private Sub Link(parent As IFS1Block, blkid As UInt32)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
 
@@ -637,7 +616,7 @@ Partial Public Class IFS1
     End Function
 
     Public Sub CreateDir(path As String)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         If DirExists(path) Then
@@ -662,7 +641,7 @@ Partial Public Class IFS1
     End Sub
 
     Public Sub Move(oldPath As String, newPath As String)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         Dim oldName = Nothing
@@ -694,7 +673,7 @@ Partial Public Class IFS1
     End Sub
 
     Public Sub CreateEmptyFile(path As String)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         If FileExists(path) Then
@@ -721,7 +700,7 @@ Partial Public Class IFS1
 
     Public Sub CreateSoftLink(path As String, topath As String)
         'Throw New NotImplementedException("CreateSoftLink")
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         If PathExists(path) Then
@@ -755,7 +734,7 @@ Partial Public Class IFS1
 
     Public Sub DeleteSoftLink(path As String)
         'Throw New NotImplementedException("DeleteSoftLink")
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         Dim filename = Nothing
@@ -770,7 +749,7 @@ Partial Public Class IFS1
     End Sub
 
     Public Sub DeleteDir(path As String)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         path = path.Replace("\"c, "/"c)
@@ -799,7 +778,7 @@ Partial Public Class IFS1
     ''' <param name="blk"></param>
     ''' <remarks></remarks>
     Public Sub ForceDeleteDirBlockRecursive(blk As IFS1DirBlock)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         For i = 0 To blk.SubBlockIDs.Length - 1
@@ -827,7 +806,7 @@ Partial Public Class IFS1
     ''' <param name="blk"></param>
     ''' <remarks></remarks>
     Private Sub ForceDeleteFileBlock(blk As IFS1FileBlock)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         For i = 0 To blk.SubBlockIDs.Length - 1
@@ -845,7 +824,7 @@ Partial Public Class IFS1
     End Sub
 
     Public Sub DeleteFile(path As String)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         path = path.Replace("\"c, "/"c)
@@ -863,7 +842,7 @@ Partial Public Class IFS1
     End Sub
 
     Public Sub WriteBlock(blk As IFS1Block)
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
 
@@ -871,7 +850,8 @@ Partial Public Class IFS1
             blk.Write(ms, False)
             SeekBlock(blk.id, SeekOrigin.Begin)
             'blk.Write(_s) 
-            _s.Write(ms.ToArray(), 0, ms.Length)
+            Dim data = ms.ToArray()
+            _s.Write(data, 0, data.Length)
         End Using
 
     End Sub
@@ -890,39 +870,73 @@ Partial Public Class IFS1
         _s.Seek(id * BLOCK_LEN, so)
     End Sub
 
+    Public HeaderLength As New Dictionary(Of IFS1Block.BlockType, Int32) From {
+        {IFS1Block.BlockType.Raw, 512},
+        {IFS1Block.BlockType.Data, 512},
+        {IFS1Block.BlockType.File, 65536},
+        {IFS1Block.BlockType.Dir, 65536},
+        {IFS1Block.BlockType.SoftLink, 65536}
+    }
+    Public Const FIRST_READ_LEN = 512
+    Private _cacheMS As New MemoryStream(BLOCK_LEN)
+
     Public Function ReadBlock(Optional readdata As Boolean = True) As IFS1Block
         If _s.Length - _s.Position < BLOCK_LEN Then
             Return Nothing
         End If
-        _s.Seek(4, SeekOrigin.Current) 'skip used
-        Dim type = BinaryHelper.ReadInt32LE(_s)
-        _s.Seek(-8, SeekOrigin.Current) 'back
+
+        _cacheMS.Seek(0, SeekOrigin.Begin)
+
+        '读取公共部分
+        Dim buffer1(FIRST_READ_LEN - 1) As Byte
+        BinaryHelper.SafeRead(_s, buffer1, 0, buffer1.Length)
+        _cacheMS.Write(buffer1, 0, buffer1.Length)
+
+        _cacheMS.Seek(4, SeekOrigin.Begin) 'skip used
+        Dim type = BinaryHelper.ReadInt32LE(_cacheMS)
+        _cacheMS.Seek(FIRST_READ_LEN, SeekOrigin.Begin) 'back
+
+        '读取剩下的
+        If readdata Then '读取数据的话就把整个Block读取
+            Dim buffer2(BLOCK_LEN - FIRST_READ_LEN - 1) As Byte
+            BinaryHelper.SafeRead(_s, buffer2, 0, buffer2.Length)
+            _cacheMS.Write(buffer2, 0, buffer2.Length)
+        ElseIf HeaderLength.ContainsKey(type) Then  '否则只读取头部分
+            Dim buffer2(HeaderLength(type) - FIRST_READ_LEN - 1) As Byte
+            BinaryHelper.SafeRead(_s, buffer2, 0, buffer2.Length)
+            _cacheMS.Write(buffer2, 0, buffer2.Length)
+        End If
+        _s.Seek(BLOCK_LEN - _cacheMS.Position, SeekOrigin.Current)
+        _cacheMS.Seek(0, SeekOrigin.Begin)
+        '_s.Seek(4, SeekOrigin.Current) 'skip used
+        'Dim type = BinaryHelper.ReadInt32LE(_s)
+        '_s.Seek(-8, SeekOrigin.Current) 'back
         Select Case type
             Case IFS1Block.BlockType.Raw
                 If readdata Then
-                    Return IFS1Block.Read(_s)
+                    Return IFS1Block.Read(_cacheMS)
                 Else
-                    Return IFS1Block.ReadWithoutData(_s)
+                    Return IFS1Block.ReadWithoutData(_cacheMS)
                 End If
             Case IFS1Block.BlockType.File
-                Return IFS1FileBlock.Read(_s)
+                Return IFS1FileBlock.Read(_cacheMS)
             Case IFS1Block.BlockType.Data
                 If readdata Then
-                    Return IFS1DataBlock.Read(_s)
+                    Return IFS1DataBlock.Read(_cacheMS)
                 Else
-                    Return IFS1DataBlock.ReadWithoutData(_s)
+                    Return IFS1DataBlock.ReadWithoutData(_cacheMS)
                 End If
             Case IFS1Block.BlockType.Dir
-                Return IFS1DirBlock.Read(_s)
+                Return IFS1DirBlock.Read(_cacheMS)
             Case IFS1Block.BlockType.SoftLink
-                Return IFS1SoftLinkBlock.Read(_s)
+                Return IFS1SoftLinkBlock.Read(_cacheMS)
             Case Else
-                Debug.Print("Warning: Unknown block! Reading as unused RawBlock")
+                Logger.WriteLine("Warning: Unknown block! Reading as unused RawBlock")
                 Dim blk As IFS1Block
                 If readdata Then
-                    blk = IFS1Block.Read(_s)
+                    blk = IFS1Block.Read(_cacheMS)
                 Else
-                    blk = IFS1Block.ReadWithoutData(_s)
+                    blk = IFS1Block.ReadWithoutData(_cacheMS)
                 End If
                 blk.used = 0
                 blk.type = IFS1Block.BlockType.Raw
@@ -951,23 +965,23 @@ Partial Public Class IFS1
 
     Public Function IsSoftLink(path As String) As Boolean
         Dim blk = GetBlockByPathStrict(path, IFS1Block.BlockType.Raw)
-        Return TypeOf blk Is IFS1SoftLinkBlock 
+        Return TypeOf blk Is IFS1SoftLinkBlock
     End Function
 
     Public Function CheckFS(repair As Boolean) As Boolean
-        If repair AndAlso ReadOnlyMount Then
-            Throw New IFS1NoPermissionException()
+        If repair AndAlso opt.ReadOnlyMount Then
+            Throw New IFS1NoPermissionException("Cannot repair when readonly mounting")
         End If
 
         NewTransaction("Repair FS")
 
         '检查RootBlock
         If RootBlock.type <> IFS1Block.BlockType.Dir Then
-            Console.WriteLine("RootBlock.Type != Dir, check failed!")
+            Logger.WriteLine("RootBlock.Type != Dir, check failed!")
             Throw New IFS1BadFileSystemException("Type mismatch!")
         End If
         If RootBlock.Name <> "/" Then
-            Console.WriteLine("RootBlock.Name != ""/""!")
+            Logger.WriteLine("RootBlock.Name != ""/""!")
             RootBlock.Name = "/"
             EnqueueBlockChange(RootBlock)
         End If
@@ -997,7 +1011,7 @@ Partial Public Class IFS1
             If TypeOf blk Is IFS1BlockWithName Then
                 Dim blkwithname = DirectCast(blk, IFS1BlockWithName)
                 If blkwithname.Name = "" Then
-                    Console.WriteLine("Block " + i.ToString() + ".name=""""!")
+                    Logger.WriteLine("Block " + i.ToString() + ".name=""""!")
                     If repair Then
                         blkwithname.Name = "block" + i.ToString()
                         EnqueueBlockChange(blkwithname)
@@ -1008,19 +1022,19 @@ Partial Public Class IFS1
             If TypeOf blk Is IFS1BlockWithTime Then
                 Dim blkwithtime = DirectCast(blk, IFS1BlockWithTime)
                 If blkwithtime.CreationTime > DateTime.Now Then
-                    Console.WriteLine("Block " + i.ToString() + ".CreationTime>Now!")
+                    Logger.WriteLine("Block " + i.ToString() + ".CreationTime>Now!")
                 End If
                 If blkwithtime.LastAccessTime > DateTime.Now Then
-                    Console.WriteLine("Block " + i.ToString() + ".LastAccessTime>Now!")
+                    Logger.WriteLine("Block " + i.ToString() + ".LastAccessTime>Now!")
                 End If
                 If blkwithtime.LastWriteTime > DateTime.Now Then
-                    Console.WriteLine("Block " + i.ToString() + ".LastWriteTime>Now!")
+                    Logger.WriteLine("Block " + i.ToString() + ".LastWriteTime>Now!")
                 End If
 
                 Try
                     blkwithtime.CreationTime.ToFileTimeUtc()
                 Catch ex As Exception
-                    Console.WriteLine("Block " + i.ToString() + ".CreationTime wrong!")
+                    Logger.WriteLine("Block " + i.ToString() + ".CreationTime wrong!")
                     If repair Then
                         blkwithtime.CreationTime = DateTime.Now
                         EnqueueBlockChange(blkwithtime)
@@ -1029,7 +1043,7 @@ Partial Public Class IFS1
                 Try
                     blkwithtime.LastAccessTime.ToFileTimeUtc()
                 Catch ex As Exception
-                    Console.WriteLine("Block " + i.ToString() + ".LastAccessTime wrong!")
+                    Logger.WriteLine("Block " + i.ToString() + ".LastAccessTime wrong!")
                     If repair Then
                         blkwithtime.LastAccessTime = DateTime.Now
                         EnqueueBlockChange(blkwithtime)
@@ -1038,7 +1052,7 @@ Partial Public Class IFS1
                 Try
                     blkwithtime.LastWriteTime.ToFileTimeUtc()
                 Catch ex As Exception
-                    Console.WriteLine("Block " + i.ToString() + ".LastWriteTime wrong!")
+                    Logger.WriteLine("Block " + i.ToString() + ".LastWriteTime wrong!")
                     If repair Then
                         blkwithtime.LastWriteTime = DateTime.Now
                         EnqueueBlockChange(blkwithtime)
@@ -1049,13 +1063,13 @@ Partial Public Class IFS1
             If TypeOf blk Is IFS1SoftLinkBlock Then
                 Dim softlink = DirectCast(blk, IFS1SoftLinkBlock)
                 If softlink.To.StartsWith("DA:/") Then
-                    Console.WriteLine("Block " + i.ToString() + ".To Starts With ""DA:/"", changing to ""/""")
+                    Logger.WriteLine("Block " + i.ToString() + ".To Starts With ""DA:/"", changing to ""/""")
                     softlink.To = softlink.To.Substring(4)
                 End If
                 If softlink.To Is Nothing Then
-                    Console.WriteLine("CANNOT REPAIR: Block " + i.ToString() + ".To is nothing!")
+                    Logger.WriteLine("CANNOT REPAIR: Block " + i.ToString() + ".To is nothing!")
                 ElseIf Not PathExists(softlink.To) Then
-                    Console.WriteLine("CANNOT REPAIR: Block " + i.ToString() + ".To Not Exists!")
+                    Logger.WriteLine("CANNOT REPAIR: Block " + i.ToString() + ".To Not Exists!")
                 End If
             End If
         Next
@@ -1063,7 +1077,7 @@ Partial Public Class IFS1
         Dim flag = True
         For i = FIRST_BLOCK_ID + 1 To BlocksCache.Count - 1
             If BlocksCache(i).used <> 0 AndAlso Not refed(i) Then
-                Console.WriteLine("Block " + i.ToString() + " not refed but used!")
+                Logger.WriteLine("Block " + i.ToString() + " not refed but used!")
                 If repair Then
                     BlocksCache(i).used = 0
                     EnqueueBlockChange(BlocksCache(i))
@@ -1076,13 +1090,15 @@ Partial Public Class IFS1
         Return flag
     End Function
 
-    Public Shared Sub MakeFS(filename As String, length As ULong)
+    Public Shared Sub MakeFS(filename As String, length As ULong, writePreserve As Boolean)
         Using fs As New FileStream(filename, FileMode.Create, FileAccess.Write)
-            MakeFS(fs, length)
+            MakeFS(fs, length, writePreserve)
         End Using
     End Sub
 
-    Public Shared Sub MakeFS(s As Stream, length As ULong)
+    Public Shared Sub MakeFS(s As Stream, length As ULong, writePreserve As Boolean)
+        Dim Logger As New LoggerWrapper(Console.Out)
+
         Dim blockcount = Math.Floor(length / BLOCK_LEN)
 
         s.Seek(510, SeekOrigin.Begin)
@@ -1096,9 +1112,18 @@ Partial Public Class IFS1
             rootblock.SubBlockIDs(i) = INVALID_BLOCK_ID
         Next
         s.Seek(FIRST_BLOCK_ID * BLOCK_LEN, SeekOrigin.Begin)
-        rootblock.Write(s, True)
+        Using ms As New MemoryStream(BLOCK_LEN)
+            rootblock.Write(ms, True)
+            If writePreserve Then
+                ms.Seek(511, SeekOrigin.Begin)
+                ms.WriteByte(0)
+            End If
+            Dim data = ms.ToArray()
+            s.Write(data, 0, data.Length)
+        End Using
 
-        Console.Write("Writing Blocks 1/{0}", blockcount)
+
+        Logger.Write("Writing Blocks 1/{0}", blockcount)
 
         Dim sw As New Stopwatch
         sw.Start()
@@ -1106,14 +1131,22 @@ Partial Public Class IFS1
             Dim block As New IFS1Block
             block.used = 0
             s.Seek(i * BLOCK_LEN, SeekOrigin.Begin)
-            block.Write(s, True)
+            Using ms As New MemoryStream(BLOCK_LEN)
+                block.Write(ms, True)
+                If writePreserve Then
+                    ms.Seek(511, SeekOrigin.Begin)
+                    ms.WriteByte(0)
+                End If
+                Dim data = ms.ToArray()
+                s.Write(data, 0, data.Length)
+            End Using
             If i Mod 10 = 0 OrElse i = FIRST_BLOCK_ID + blockcount - 1 Then
                 Console.Write("{0}Writing Blocks {1}/{2}                      ", Chr(13), i - FIRST_BLOCK_ID + 1, blockcount)
             End If
         Next
         sw.Stop()
         Console.WriteLine()
-        Console.WriteLine("done {0}ms", sw.ElapsedMilliseconds)
+        Logger.WriteLine("done {0}ms", sw.ElapsedMilliseconds)
         s.Flush()
     End Sub
 

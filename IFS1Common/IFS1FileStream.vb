@@ -28,7 +28,7 @@ Public Class IFS1FileStream
 
     Public Overrides ReadOnly Property CanWrite As Boolean
         Get
-            Return Not ifs.ReadOnlyMount
+            Return Not ifs.opt.ReadOnlyMount
         End Get
     End Property
 

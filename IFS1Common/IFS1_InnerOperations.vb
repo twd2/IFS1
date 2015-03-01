@@ -10,7 +10,7 @@ Partial Public Class IFS1
     ''' <returns></returns>
     ''' <remarks></remarks>
     Private Function AllocBlock() As UInt32
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         For i = 0 To BlocksCache.Count - 1
@@ -28,7 +28,7 @@ Partial Public Class IFS1
     ''' <returns></returns>
     ''' <remarks></remarks>
     Private Function AllocBlock(count As UInt32) As UInt32()
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
 
@@ -57,7 +57,7 @@ Partial Public Class IFS1
     ''' <returns></returns>
     ''' <remarks></remarks>
     Private Function AllocBlock(exceptid As List(Of UInt32)) As UInt32
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
         For i = 0 To BlocksCache.Count - 1
@@ -75,7 +75,7 @@ Partial Public Class IFS1
     ''' <returns></returns>
     ''' <remarks></remarks>
     Private Function AllocBlock(count As UInt32, exceptid As List(Of UInt32)) As UInt32()
-        If ReadOnlyMount Then
+        If opt.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
 
