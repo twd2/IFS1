@@ -41,6 +41,7 @@
                 Throw New IFS1TransactionCommittedException()
             End If
             BlockChanges.Clear()
+            ifs.ReloadBlocksCache()
         End SyncLock
     End Sub
 

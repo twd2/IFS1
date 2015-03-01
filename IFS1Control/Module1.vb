@@ -7,16 +7,16 @@ Module Module1
 
     Sub Main()
         'IFS1.MakeFS("test.ifs1", 1024 * 1024 * 1024 * 10L) '10GB
-        Using fs As New FileStream("test.ifs1", FileMode.Open, FileAccess.ReadWrite)
-            Dim ifs As New IFS1(fs, True, True)
-            'ifs.ReadOnlyMount = True
-            mount(ifs, "S")
-        End Using
-        'Using fs As New FileStream("isystemx86.vhd", FileMode.Open, FileAccess.ReadWrite)
+        'Using fs As New FileStream("test.ifs1", FileMode.Open, FileAccess.ReadWrite)
         '    Dim ifs As New IFS1(fs, True, True)
         '    'ifs.ReadOnlyMount = True
         '    mount(ifs, "S")
         'End Using
+        Using fs As New FileStream("isystemx86.vhd", FileMode.Open, FileAccess.ReadWrite)
+            Dim ifs As New IFS1(fs, True, True)
+            'ifs.ReadOnlyMount = True
+            mount(ifs, "S")
+        End Using
         Console.ReadKey()
     End Sub
 

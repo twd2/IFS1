@@ -115,6 +115,15 @@ Partial Public Class IFS1
     End Sub
 
     ''' <summary>
+    ''' 刷新Block缓存
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Sub ReloadBlocksCache()
+        _s.Seek(0, SeekOrigin.Begin)
+        LoadBlocksCache()
+    End Sub
+
+    ''' <summary>
     ''' 入队Block修改
     ''' </summary>
     ''' <param name="newblock"></param>
@@ -859,7 +868,7 @@ Partial Public Class IFS1
         End If
 
         Using ms As New MemoryStream(BLOCK_LEN)
-            blk.Write(ms)
+            blk.Write(ms, False)
             SeekBlock(blk.id, SeekOrigin.Begin)
             'blk.Write(_s) 
             _s.Write(ms.ToArray(), 0, ms.Length)
@@ -1039,6 +1048,10 @@ Partial Public Class IFS1
 
             If TypeOf blk Is IFS1SoftLinkBlock Then
                 Dim softlink = DirectCast(blk, IFS1SoftLinkBlock)
+                If softlink.To.StartsWith("DA:/") Then
+                    Console.WriteLine("Block " + i.ToString() + ".To Starts With ""DA:/"", changing to ""/""")
+                    softlink.To = softlink.To.Substring(4)
+                End If
                 If softlink.To Is Nothing Then
                     Console.WriteLine("CANNOT REPAIR: Block " + i.ToString() + ".To is nothing!")
                 ElseIf Not PathExists(softlink.To) Then
@@ -1083,7 +1096,7 @@ Partial Public Class IFS1
             rootblock.SubBlockIDs(i) = INVALID_BLOCK_ID
         Next
         s.Seek(FIRST_BLOCK_ID * BLOCK_LEN, SeekOrigin.Begin)
-        rootblock.Write(s)
+        rootblock.Write(s, True)
 
         Console.Write("Writing Blocks 1/{0}", blockcount)
 
@@ -1093,7 +1106,7 @@ Partial Public Class IFS1
             Dim block As New IFS1Block
             block.used = 0
             s.Seek(i * BLOCK_LEN, SeekOrigin.Begin)
-            block.Write(s)
+            block.Write(s, True)
             If i Mod 10 = 0 OrElse i = FIRST_BLOCK_ID + blockcount - 1 Then
                 Console.Write("{0}Writing Blocks {1}/{2}                      ", Chr(13), i - FIRST_BLOCK_ID + 1, blockcount)
             End If

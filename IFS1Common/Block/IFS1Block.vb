@@ -1,4 +1,5 @@
 ﻿Imports System.IO
+Imports System.Runtime.InteropServices
 
 Public Class IFS1Block
 
@@ -21,6 +22,7 @@ Public Class IFS1Block
 
     Public used As Int32
     Public type As BlockType = BlockType.Raw  'Int32
+
     Public rawdata(-1) As Byte '[65528]
 
     Public Shared Function Read(s As Stream) As IFS1Block
@@ -40,9 +42,9 @@ Public Class IFS1Block
         Return r
     End Function
 
-    Public Overridable Sub Write(s As Stream)
-        BinaryHelper.WriteInt32LE(s, used)
-        BinaryHelper.WriteInt32LE(s, type)
+    Public Overridable Sub Write(s As Stream, buffered As Boolean)
+        BinaryHelper.WriteInt32LE(s, used, buffered)
+        BinaryHelper.WriteInt32LE(s, type, buffered)
         If rawdata.Length > 0 Then
             s.Write(rawdata, 0, rawdata.Length)
             s.Seek(65528 - rawdata.Length, SeekOrigin.Current)

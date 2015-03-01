@@ -38,9 +38,9 @@ Public Class IFS1SoftLinkBlock
         Return r
     End Function
 
-    Public Overrides Sub Write(s As Stream)
-        BinaryHelper.WriteInt32LE(s, used)
-        BinaryHelper.WriteInt32LE(s, type)
+    Public Overrides Sub Write(s As Stream, buffered As Boolean)
+        BinaryHelper.WriteInt32LE(s, used, buffered)
+        BinaryHelper.WriteInt32LE(s, type, buffered)
         s.Write(namedata, 0, 256)
         s.Seek(248, SeekOrigin.Current)
         s.Write(todata, 0, todata.Length)

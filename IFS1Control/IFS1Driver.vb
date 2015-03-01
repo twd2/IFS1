@@ -160,7 +160,7 @@ Public Class IFS1Driver
 
     Public Function ReadFile(filename As String, buffer() As Byte, ByRef readBytes As UInteger, offset As Long, info As DokanFileInfo) As Integer Implements DokanOperations.ReadFile
         Try
-            Console.WriteLine("ReadFile: " + filename)
+            'Console.WriteLine("ReadFile: " + filename)
             readBytes = ifs.Read(filename, buffer, offset, 0, buffer.Length)
             Return 0
         Catch ex As Exception
@@ -219,7 +219,7 @@ Public Class IFS1Driver
 
     Public Function WriteFile(filename As String, buffer() As Byte, ByRef writtenBytes As UInteger, offset As Long, info As DokanFileInfo) As Integer Implements DokanOperations.WriteFile
         Try
-            Console.WriteLine("WriteFile: " + filename)
+            'Console.WriteLine("WriteFile: " + filename)
             writtenBytes = ifs.Write(filename, buffer, offset, 0, buffer.Length)
             Return 0
         Catch ex As Exception

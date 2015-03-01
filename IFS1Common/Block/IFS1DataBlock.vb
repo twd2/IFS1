@@ -57,10 +57,10 @@ Public Class IFS1DataBlock
         Return r
     End Function
 
-    Public Overrides Sub Write(s As Stream)
-        BinaryHelper.WriteInt32LE(s, used)
-        BinaryHelper.WriteInt32LE(s, type)
-        BinaryHelper.WriteUInt32LE(s, _length)
+    Public Overrides Sub Write(s As Stream, buffered As Boolean)
+        BinaryHelper.WriteInt32LE(s, used, buffered)
+        BinaryHelper.WriteInt32LE(s, type, buffered)
+        BinaryHelper.WriteUInt32LE(s, _length, buffered)
         s.Seek(500, SeekOrigin.Current)
         If data.Length > 0 Then
             s.Write(data, 0, data.Length)

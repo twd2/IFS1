@@ -1,5 +1,7 @@
 ﻿Imports System.IO
 Imports System.Text
+Imports System.Runtime.InteropServices
+
 Public Class IFS1FileBlock
     Inherits IFS1Block
     Implements IFS1BlockWithName
@@ -64,24 +66,31 @@ Public Class IFS1FileBlock
         r.change = CMOSDateTime.Read(s)
         r.propertydata = BinaryHelper.ReadUInt32LE(s)
         s.Seek(736, SeekOrigin.Current) 'skip
-        For i = 0 To SUB_BLOCK_COUNT - 1
-            r.blockids(i) = BinaryHelper.ReadUInt32LE(s)
-        Next
+
+        Dim blockidsdata(SUB_BLOCK_COUNT * Marshal.SizeOf(GetType(UInt32)) - 1) As Byte
+        BinaryHelper.SafeRead(s, blockidsdata, 0, blockidsdata.Length)
+        r.blockids = BinaryHelper.ToArray(Of UInt32)(blockidsdata)
+        'For i = 0 To SUB_BLOCK_COUNT - 1
+        '    r.blockids(i) = BinaryHelper.ReadUInt32LE(s)
+        'Next
         Return r
     End Function
 
-    Public Overrides Sub Write(s As Stream)
-        BinaryHelper.WriteInt32LE(s, used)
-        BinaryHelper.WriteInt32LE(s, type)
-        BinaryHelper.WriteUInt32LE(s, _length)
+    Public Overrides Sub Write(s As Stream, buffered As Boolean)
+        BinaryHelper.WriteInt32LE(s, used, buffered)
+        BinaryHelper.WriteInt32LE(s, type, buffered)
+        BinaryHelper.WriteUInt32LE(s, _length, buffered)
         s.Write(namedata, 0, 256)
         create.Write(s)
         change.Write(s)
-        BinaryHelper.WriteUInt32LE(s, propertydata)
+        BinaryHelper.WriteUInt32LE(s, propertydata, buffered)
         s.Seek(736, SeekOrigin.Current)
-        For i = 0 To SUB_BLOCK_COUNT - 1
-            BinaryHelper.WriteUInt32LE(s, blockids(i))
-        Next
+
+        Dim blockidsdata = BinaryHelper.ToBytes(Of UInt32)(blockids)
+        s.Write(blockidsdata, 0, blockidsdata.Length)
+        'For i = 0 To SUB_BLOCK_COUNT - 1
+        '    BinaryHelper.WriteUInt32LE(s, blockids(i), buffered)
+        'Next
     End Sub
 
     Private _name As String
