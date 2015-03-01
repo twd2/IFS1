@@ -81,6 +81,8 @@ Module Module1
                 Return
             End If
 
+            Throw New NotImplementedException()
+
             Console.WriteLine("Mount using Dokan driver...")
 
             Dim mode = Win32Native.GENERIC_READ Or Win32Native.GENERIC_WRITE
@@ -104,22 +106,93 @@ Module Module1
 
             Using ds As New DeviceStream(argobj("Device").params(0)(0) + ":", mode)
                 ds.SetLength(totalSize)
-                Using bs As New BufferedStream(ds)
-                    'IFS1.MakeFS(ds, totalSize, True)
+                Using bs As New BufferedStream(ds, 16 * 1024 * 1024)
                     Dim ifs As New IFS1(logger, bs, opt)
-                    'ifs.ReadOnlyMount = True
                     Mount(ifs, argobj("MountPoint").params(0))
                 End Using
             End Using
-            'Throw New NotImplementedException()
         End If
     End Sub
 
-    Public Sub MakeFS(args As String())
+    Private Function ParseLength(l As String) As ULong
+        l = l.ToUpper()
+        If l.Last = "B"c Then
+            l = l.Substring(0, l.Length - 1)
+        End If
+        If l.Last = "I"c Then
+            l = l.Substring(0, l.Length - 1)
+        End If
+        Dim ch = l.Last
+        l = l.Substring(0, l.Length - 1)
+        Dim val As ULong = ULong.Parse(l)
+        Select Case ch
+            Case "K"
+                l *= 1024L
+            Case "M"
+                l *= 1024L * 1024
+            Case "G"
+                l *= 1024L * 1024 * 1024
+            Case "T"
+                l *= 1024L * 1024 * 1024 * 1024
+        End Select
+        Return l
+    End Function
 
+    Public Sub MakeFS(args As String())
+        Dim parser As New StartupArgsParser()
+        parser.AddArgument("Device", "d", "device", 1, 1)
+        parser.AddArgument("Filename", "f", "file", 1, 1)
+        parser.AddArgument("Length", "l", "length", 1, 1)
+        Dim argobj = parser.Parse(args)
+
+        If argobj("Length").params.Count <= 0 Then
+            Console.WriteLine("No length specified")
+            PrintUsage()
+            Return
+        End If
+
+        If Not argobj("Device").found AndAlso Not argobj("Filename").found Then
+            Console.WriteLine("Cannot neither device nor file")
+            PrintUsage()
+            Return
+        End If
+        If argobj("Device").found AndAlso argobj("Filename").found Then
+            Console.WriteLine("Cannot both device and file")
+            PrintUsage()
+            Return
+        End If
+
+        Dim opt As New IFS1MountOptions
+
+        If argobj("Filename").found Then
+            If argobj("Filename").params.Count <= 0 Then
+                Console.WriteLine("No filename specified")
+                PrintUsage()
+                Return
+            End If
+
+            Dim fn = argobj("Filename").params(0)
+            Dim len = ParseLength(argobj("Length").params(0))
+
+            Console.WriteLine("Making FS {0}, Length: {1}", fn, len)
+
+            IFS1.MakeFS(fn, len, False)
+
+        Else 'Device
+            If argobj("Device").params.Count <= 0 Then
+                Console.WriteLine("No device specified")
+                PrintUsage()
+                Return
+            End If
+
+            Throw New NotImplementedException()
+
+        End If
     End Sub
 
     Sub Main(args As String())
+        Test()
+        Return
         If args.Length <= 0 Then
             PrintUsage()
             Return
@@ -127,24 +200,46 @@ Module Module1
         Dim cmd = args(0).ToLower()
         Dim values(args.Length - 2) As String
         Array.Copy(args, 1, values, 0, values.Length)
-        Select Case cmd.ToLower
-            Case "mount", "m"
-                Mount(values)
-            Case "mkfs", "makefs"
-                MakeFS(values)
-        End Select
-        ''IFS1.MakeFS("test.ifs1", 1024 * 1024 * 1024 * 10L) '10GB
-        ''Using fs As New FileStream("test.ifs1", FileMode.Open, FileAccess.ReadWrite)
-        ''    Dim ifs As New IFS1(fs, True, True)
-        ''    'ifs.ReadOnlyMount = True
-        ''    mount(ifs, "S")
-        ''End Using
-        'Using fs As New FileStream("isystemx86.vhd", FileMode.Open, FileAccess.ReadWrite)
-        '    Dim ifs As New IFS1(logger, fs, True, True)
+        Try
+            Select Case cmd.ToLower
+                Case "mount", "m"
+                    Mount(values)
+                Case "mkfs", "makefs"
+                    MakeFS(values)
+            End Select
+        Catch saex As StartupArgsParseException
+            Console.WriteLine(saex.ToString())
+            PrintUsage()
+            Return
+        Catch ex As Exception
+#If DEBUG Then
+            Throw
+#End If
+            Console.WriteLine(ex.ToString())
+            Console.ReadKey()
+        End Try
+    End Sub
+
+    Private Sub Test()
+        Dim memsize = 1024 * 1024 * 1024
+        Using ms As New MemoryStream(memsize)
+            IFS1.MakeFS(ms, memsize, False)
+            ms.Seek(0, SeekOrigin.Begin)
+            Dim ifs As New IFS1(logger, ms, New IFS1MountOptions)
+            'ifs.CreateEmptyFile("/test.bin")
+            'Using ifsfs As New IFS1FileStream(ifs, "/test.bin")
+            '    IFS1.MakeFS(ifsfs, memsize / 2, False)
+            '    ifsfs.Seek(0, SeekOrigin.Begin)
+            '    'Dim subifs As New IFS1(logger, ifsfs, New IFS1MountOptions)
+            '    'Mount(subifs, "S")
+            'End Using
+            Mount(ifs, "S")
+        End Using
+        'Using fs As New FileStream(argobj("Filename").params(0), FileMode.Open, fa)
+        '    Dim ifs As New IFS1(logger, fs, opt)
         '    'ifs.ReadOnlyMount = True
-        '    mount(ifs, "S")
+        '    Mount(ifs, argobj("MountPoint").params(0))
         'End Using
-        'Console.ReadKey()
     End Sub
 
     Sub Mount(ifs As IFS1, symbol As Char)

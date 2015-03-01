@@ -149,10 +149,10 @@ Partial Public Class IFS1
     ''' </summary>
     ''' <remarks></remarks>
     Public Sub Sync()
-        Dim issync = NeedSync
-        If issync Then
-            Logger.WriteLine("Syncing...")
-        End If
+        'Dim issync = NeedSync
+        'If issync Then
+        '    Logger.WriteLine("Syncing...")
+        'End If
 
         SyncLock Me
             Do While pendingBlocks.Count > 0
@@ -162,9 +162,9 @@ Partial Public Class IFS1
             _s.Flush()
         End SyncLock
 
-        If issync Then
-            Logger.WriteLine("Sync done.")
-        End If
+        'If issync Then
+        '    Logger.WriteLine("Sync done.")
+        'End If
     End Sub
 
     ''' <summary>
@@ -1101,9 +1101,13 @@ Partial Public Class IFS1
 
         Dim blockcount = Math.Floor(length / BLOCK_LEN)
 
-        s.Seek(510, SeekOrigin.Begin)
-        s.WriteByte(&H55)
-        s.WriteByte(&HAA)
+        's.Seek(510, SeekOrigin.Begin)
+        Dim sec0(512 - 1) As Byte
+        sec0(510) = &H55
+        sec0(511) = &HAA
+        s.Write(sec0, 0, sec0.Length)
+        's.WriteByte(&H55)
+        's.WriteByte(&HAA)
 
         Dim rootblock As New IFS1DirBlock
         rootblock.Name = "/"
@@ -1127,7 +1131,7 @@ Partial Public Class IFS1
 
         Dim sw As New Stopwatch
         sw.Start()
-        For i = FIRST_BLOCK_ID + 1 To FIRST_BLOCK_ID + blockcount - 1
+        For i = FIRST_BLOCK_ID + 1 To blockcount - 1
             Dim block As New IFS1Block
             block.used = 0
             s.Seek(i * BLOCK_LEN, SeekOrigin.Begin)
@@ -1140,7 +1144,7 @@ Partial Public Class IFS1
                 Dim data = ms.ToArray()
                 s.Write(data, 0, data.Length)
             End Using
-            If i Mod 10 = 0 OrElse i = FIRST_BLOCK_ID + blockcount - 1 Then
+            If i Mod 10 = 0 OrElse i = blockcount - 1 Then
                 Console.Write("{0}Writing Blocks {1}/{2}                      ", Chr(13), i - FIRST_BLOCK_ID + 1, blockcount)
             End If
         Next

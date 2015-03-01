@@ -45,7 +45,9 @@ Public Class IFS1FileStream
     Public Overrides Property Position As Long
 
     Public Overrides Function Read(buffer() As Byte, offset As Integer, count As Integer) As Integer
-        Return ifs.Read(path, buffer, Position, offset, count)
+        Dim ret = ifs.Read(path, buffer, Position, offset, count)
+        Position += ret
+        Return ret
     End Function
 
     Public Overrides Function Seek(offset As Long, origin As SeekOrigin) As Long
@@ -69,6 +71,7 @@ Public Class IFS1FileStream
     End Sub
 
     Public Overrides Sub Write(buffer() As Byte, offset As Integer, count As Integer)
-        ifs.Write(path, buffer, Position, offset, count)
+        Dim ret = ifs.Write(path, buffer, Position, offset, count)
+        Position += ret
     End Sub
 End Class

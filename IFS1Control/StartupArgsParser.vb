@@ -20,7 +20,9 @@
             If arg.StartsWith("--") Then
                 Dim lname = arg.Substring(2).ToLower()
                 If Not longName.ContainsKey(lname) Then
-                    Throw New StartupArgsParseException("Unknown argument """ + lname + """")
+                    'Throw New StartupArgsParseException("Unknown argument """ + lname + """")
+                    i += 1
+                    Continue Do
                 End If
 
                 Dim obj = argObjs(longName(lname))
@@ -42,7 +44,8 @@
                 For j = 1 To arg.Length - 1
                     Dim sname = arg.ToLower()(j)
                     If Not shortName.ContainsKey(sname) Then
-                        Throw New StartupArgsParseException("Unknown argument """ + sname + """")
+                        'Throw New StartupArgsParseException("Unknown argument """ + sname + """")
+                        Continue For
                     End If
 
                     Dim obj = argObjs(shortName(sname))
@@ -62,7 +65,7 @@
                     i -= 1
                 Next
             Else
-                Throw New StartupArgsParseException("Wrong Arg """ & arg & """")
+                'Throw New StartupArgsParseException("Bad argument """ & arg & """")
             End If
 
             i += 1
