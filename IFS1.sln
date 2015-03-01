@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.30501.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "IFS1Common", "IFS1Common\IFS1Common.vbproj", "{E1921822-8228-496C-9DCE-581831F6983E}"
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "IFS1Control", "IFS1Console\IFS1Control.vbproj", "{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x86 = Debug|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E1921822-8228-496C-9DCE-581831F6983E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1921822-8228-496C-9DCE-581831F6983E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1921822-8228-496C-9DCE-581831F6983E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{E1921822-8228-496C-9DCE-581831F6983E}.Debug|x86.Build.0 = Debug|Any CPU
+		{E1921822-8228-496C-9DCE-581831F6983E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1921822-8228-496C-9DCE-581831F6983E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1921822-8228-496C-9DCE-581831F6983E}.Release|x86.ActiveCfg = Release|Any CPU
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Debug|x86.ActiveCfg = Debug|x86
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Debug|x86.Build.0 = Debug|x86
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Release|Any CPU.Build.0 = Release|Any CPU
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Release|x86.ActiveCfg = Release|x86
+		{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+EndGlobal
