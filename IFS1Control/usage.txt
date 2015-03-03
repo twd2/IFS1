@@ -1,0 +1,12 @@
+ifs1 <command> [<arguments>]
+Commands:
+        mount, m -dflrst                        Mount IFS1
+        mkfs, makefs -dfl                       Make file/device IFS1
+Arguments:
+        -c, --check                             Check when mount
+        -f, --file filename; -d, --dev [A-Z]:\  File or device name
+        -l, --length length(B/K/M/G/T)          Length for make file system
+        -m, --mountpoint [A-Z]                  Mount point
+        -p, --repair                            Repair if file system check failed
+        -r, --readonly                          Readonly Mount
+        -t, --temp                              Mount temporary memory disk with length

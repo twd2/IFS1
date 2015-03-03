@@ -51,3 +51,12 @@ Test
 1. Run ```IFS1Control mount -cpf test -m S```
 
 1. Open S:\ from explorer and do whatever you want.
+
+Test - Memory Disk
+==
+
+1. Install DokanY driver.
+
+1. Run ```IFS1Control mount -t -l 100M -m S```
+
+1. Open S:\ from explorer and do whatever you want.

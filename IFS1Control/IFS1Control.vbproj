@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{242A6A87-F49C-46EA-AC3D-7E8FCA52C130}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <StartupObject>IFS1Control.Module1</StartupObject>
+    <StartupObject>IFS1Control.EntryPoint</StartupObject>
     <RootNamespace>IFS1Control</RootNamespace>
     <AssemblyName>IFS1Control</AssemblyName>
     <FileAlignment>512</FileAlignment>
@@ -95,7 +95,7 @@
   <ItemGroup>
     <Compile Include="DeviceStream.vb" />
     <Compile Include="IFS1Driver.vb" />
-    <Compile Include="Module1.vb" />
+    <Compile Include="EntryPoint.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -144,6 +144,9 @@
       <Project>{e1921822-8228-496c-9dce-581831f6983e}</Project>
       <Name>IFS1Common</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="usage.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

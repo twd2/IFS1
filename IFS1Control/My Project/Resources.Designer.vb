@@ -59,5 +59,24 @@ Namespace My.Resources
                 resourceCulture = value
             End Set
         End Property
+        
+        '''<summary>
+        '''  查找类似 ifs1 &lt;command&gt; [&lt;arguments&gt;]
+        '''Commands:
+        '''        mount, m -dfrs                          Mount IFS1
+        '''        mkfs, makefs -dfl                       Make file/device IFS1
+        '''Arguments:
+        '''        -c, --check                             Check when mount
+        '''        -f, --file filename; -d, --dev [A-Z]:\  File or device name
+        '''        -m, --mountpoint [A-Z]                  Mount point
+        '''        -l, --length length(B/K/M/G/T)          Length for mkfs
+        '''        -r, --readonly                          Readonly Mount
+        '''    [字符串的其余部分被截断]&quot;; 的本地化字符串。
+        '''</summary>
+        Friend ReadOnly Property usage() As String
+            Get
+                Return ResourceManager.GetString("usage", resourceCulture)
+            End Get
+        End Property
     End Module
 End Namespace
