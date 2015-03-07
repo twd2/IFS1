@@ -1,10 +1,21 @@
 ﻿Imports System.IO
+Imports System.Runtime.InteropServices
 
 Class DeviceStream
     Inherits Stream
     Implements IDisposable
 
-    Public Const SECTOR_LEN = 512 * 8 '* 128
+    ''' <summary>
+    ''' 扇区大小
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Const SECTOR_LEN = 512
+
+    ''' <summary>
+    ''' 每次操作的块大小
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Const BLOCK_LEN = 512 * 128
 
     Private _dev As String
     Private hFile As Integer
@@ -42,7 +53,7 @@ Class DeviceStream
 
     Private _length As Long? = Nothing
     Public Overrides Sub SetLength(len As Long)
-        _length = len
+        Throw New NotImplementedException
     End Sub
 
     Public Overrides ReadOnly Property Length As Long
@@ -50,66 +61,85 @@ Class DeviceStream
             If _length IsNot Nothing Then
                 Return _length
             Else
-                Dim size = 0
-                Win32Native.GetFileSize(hFile, size)
+                Dim retLength, ret As Integer
+                Win32Native.SetLastError(0)
+                Dim size(0) As Long
+                ret = Win32Native.DeviceIoControl(hFile, Win32Native.IOCTL_DISK_GET_LENGTH_INFO, 0, 0, Marshal.UnsafeAddrOfPinnedArrayElement(size, 0), 8, retLength, 0)
                 Win32Native.AssumeNoError()
-                _length = size
-                Return size
+                Debug.Assert(retLength = 8)
+                _length = size(0)
+                Return _length
             End If
         End Get
     End Property
 
     Public Overrides Property Position As Long = 0
 
+    Private sectorData(BLOCK_LEN - 1) As Byte
+
     Public Overrides Function Read(buffer() As Byte, offset As Integer, count As Integer) As Integer
         If Position >= Length Then
             Return 0
         End If
 
-        Dim readlength = 0
-        Do While readlength < count
-            Dim currentoffset = readlength + Position
-            If currentoffset >= Length Then
-                Position += readlength
-                Return readlength
+        Dim readLength = 0L
+        Do While readLength < count
+            Dim currentOffset = readLength + Position
+            If currentOffset >= Length Then
+                Position += readLength
+                Return readLength
             End If
 
             Dim offsetOfSector As Long
-            Dim indexOfSector = Math.DivRem(currentoffset, SECTOR_LEN, offsetOfSector)
+            Dim indexOfSector = Math.DivRem(currentOffset, SECTOR_LEN, offsetOfSector)
 
-            Dim sectorData(SECTOR_LEN - 1) As Byte
-            Dim win32read = 0
-            SeekToSector(indexOfSector)
-            Dim code = Win32Native.ReadFile(hFile, sectorData(0), SECTOR_LEN, win32read, 0)
-            If code <> 1 Then
-                Win32Native.AssumeNoError()
+            '如果恰好在扇区边界
+            If offsetOfSector = 0 AndAlso buffer.Length - (readLength + offset) >= SECTOR_LEN AndAlso count - readLength >= SECTOR_LEN Then
+                Dim currentRead = Math.Min(Math.Floor((count - readLength) / SECTOR_LEN) * SECTOR_LEN, BLOCK_LEN)
+                Dim win32read = 0
+                SeekToSector(indexOfSector)
+                Dim code = Win32Native.ReadFile(hFile, buffer(readLength + offset), currentRead, win32read, 0)
+                If code <> 1 Then
+                    Win32Native.AssumeNoError()
+                End If
+                'Debug.Assert(win32read = currentRead)
+                _currentSector += currentRead / SECTOR_LEN
+                readLength += currentRead
+            Else '否则需要裁剪
+                Dim win32read = 0
+                SeekToSector(indexOfSector)
+                Dim code = Win32Native.ReadFile(hFile, sectorData(0), SECTOR_LEN, win32read, 0)
+                If code <> 1 Then
+                    Win32Native.AssumeNoError()
+                End If
+                'Debug.Assert(win32read = SECTOR_LEN)
+                _currentSector += 1
+
+                Dim currentread = Math.Min(Math.Min(SECTOR_LEN - offsetOfSector,
+                                    count - readLength),
+                                     Length - currentOffset)
+
+                If currentread > 0 Then
+                    Array.Copy(sectorData, offsetOfSector, buffer, readLength + offset, currentread)
+                Else
+                    Position += readLength
+                    Return readLength
+                End If
+
+                readLength += currentread
             End If
-            Debug.Assert(win32read = SECTOR_LEN)
-            _currentSector += 1
-
-            Dim currentread = Math.Min(Math.Min(SECTOR_LEN - offsetOfSector,
-                                count - readlength),
-                                 Length - currentoffset)
-
-            If currentread > 0 Then
-                Array.Copy(sectorData, offsetOfSector, buffer, readlength + offset, currentread)
-            Else
-                Position += readlength
-                Return readlength
-            End If
-
-            readlength += currentread
         Loop
-        Position += readlength
-        Return readlength
+        Position += readLength
+        Return readLength
     End Function
 
     Private Sub SeekToSector(n As Long)
         If _currentSector = n Then
             Return
         End If
-        Dim tomove = n * SECTOR_LEN
-        Win32Native.SetFilePointerEx(hFile, tomove, 0, 0)
+        Dim toMove = (n - _currentSector) * SECTOR_LEN
+        Win32Native.SetLastError(0)
+        Dim ret = Win32Native.SetFilePointerEx(hFile, toMove, 0, Win32Native.FILE_CURRENT)
         Win32Native.AssumeNoError()
         _currentSector = n
     End Sub
@@ -135,66 +165,64 @@ Class DeviceStream
         End If
 
 
-        Dim writtenlength = 0
-        Do While writtenlength < count
-            Dim currentoffset = writtenlength + Position
+        Dim writtenLength = 0L
+        Do While writtenLength < count
+            Dim currentoffset = writtenLength + Position
             'Debug.Assert(currentoffset < Length)
 
             Dim offsetOfSector As Long
             Dim indexOfSector = Math.DivRem(currentoffset, SECTOR_LEN, offsetOfSector)
 
-            If offsetOfSector = 0 AndAlso buffer.Length - (writtenlength + offset) >= SECTOR_LEN Then
-                'Dim sectorData(SECTOR_LEN - 1) As Byte
-                'Array.Copy(buffer, writtenlength + offset, sectorData, 0, SECTOR_LEN)
+            If offsetOfSector = 0 AndAlso buffer.Length - (writtenLength + offset) >= SECTOR_LEN AndAlso count - writtenLength >= SECTOR_LEN Then
+                Dim currentWrite = Math.Min(Math.Floor((count - writtenLength) / SECTOR_LEN) * SECTOR_LEN, BLOCK_LEN)
                 Dim win32wrote = 0
                 SeekToSector(indexOfSector)
-                'Win32Native.WriteFile(hFile, sectorData(0), SECTOR_LEN, win32wrote, 0)
-                Dim code = Win32Native.WriteFile(hFile, buffer(writtenlength + offset), SECTOR_LEN, win32wrote, 0)
+                Dim code = Win32Native.WriteFile(hFile, buffer(writtenLength + offset), currentWrite, win32wrote, 0)
                 If code <> 1 Then
                     Win32Native.AssumeNoError()
                 End If
-                Debug.Assert(win32wrote = SECTOR_LEN)
-                _currentSector += 1
-                writtenlength += SECTOR_LEN
+                'Debug.Assert(win32wrote = currentWrite)
+                _currentSector += currentWrite / SECTOR_LEN
+                writtenLength += currentWrite
             Else
-                Dim sectorData(SECTOR_LEN - 1) As Byte
+                'Dim sectorData(SECTOR_LEN - 1) As Byte
                 Dim win32read = 0
                 SeekToSector(indexOfSector)
                 Dim code = Win32Native.ReadFile(hFile, sectorData(0), SECTOR_LEN, win32read, 0)
                 If code <> 1 Then
                     Win32Native.AssumeNoError()
                 End If
-                Debug.Assert(win32read = SECTOR_LEN)
+                'Debug.Assert(win32read = SECTOR_LEN)
                 _currentSector += 1
 
                 Dim currentwrite = Math.Min(Math.Min(SECTOR_LEN - offsetOfSector,
-                                    count - writtenlength),
+                                    count - writtenLength),
                                      Length - currentoffset)
 
                 If currentwrite > 0 Then
-                    Array.Copy(buffer, writtenlength + offset, sectorData, offsetOfSector, currentwrite)
+                    Array.Copy(buffer, writtenLength + offset, sectorData, offsetOfSector, currentwrite)
                     Dim win32wrote = 0
                     SeekToSector(indexOfSector)
                     code = Win32Native.WriteFile(hFile, sectorData(0), SECTOR_LEN, win32wrote, 0)
                     If code <> 1 Then
                         Win32Native.AssumeNoError()
                     End If
-                    Debug.Assert(win32wrote = SECTOR_LEN)
+                    'Debug.Assert(win32wrote = SECTOR_LEN)
                     _currentSector += 1
                 Else
-                    Position += writtenlength
+                    Position += writtenLength
                     Return 'writtenlength
                 End If
-                writtenlength += currentwrite
+                writtenLength += currentwrite
             End If
         Loop
-        Position += writtenlength
+        Position += writtenLength
         Return 'writtenlength
     End Sub
 
     Public Overrides Sub Close()
-        Win32Native.CloseHandle(hFile)
         Try
+            Win32Native.CloseHandle(hFile)
             Win32Native.AssumeNoError()
         Catch ex As Exception
 

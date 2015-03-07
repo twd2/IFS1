@@ -37,15 +37,57 @@ Public Class Win32Native
 
     End Function
 
+    Public Const FILE_BEGIN = 0
+    Public Const FILE_CURRENT = 1
+    Public Const FILE_END = 2
+
     <DllImport("kernel32")>
-    Public Shared Function SetFilePointerEx(ByVal hFile As Integer, lDistanceToMove As Long, ByRef lpDistanceToMoveHigh As Integer, dwMoveMethod As Integer) As Integer
+    Public Shared Function SetFilePointerEx(ByVal hFile As Integer, lDistanceToMove As Long, ByRef lpNewFilePointer As Long, dwMoveMethod As Integer) As Integer
 
     End Function
 
     <DllImport("kernel32")>
-    Public Shared Function GetFileSize(ByVal hFile As Integer, ByRef lpFileSizeHigh As Integer) As Integer
+    Public Shared Function GetFileSizeEx(ByVal hFile As Integer, ByRef lpFileSizeHigh As Long) As Integer
 
     End Function
+
+    <DllImport("kernel32")>
+    Public Shared Function GetDiskFreeSpaceEx(ByVal lpDirectoryName As String, ByRef lpFreeBytesAvailable As ULong, ByRef lpTotalNumberOfBytes As ULong, ByRef lpTotalNumberOfFreeBytes As ULong) As Integer
+
+    End Function
+
+    <DllImport("kernel32")>
+    Public Shared Function GetLogicalDriveStrings(ByVal nBufferLength As Integer, lpBuffer As IntPtr) As Integer
+
+    End Function
+
+
+    <DllImport("kernel32")>
+    Public Shared Function GetVolumeInformation(ByVal lpRootPathName As String, lpVolumeNameBuffer As IntPtr, nVolumeNameSize As Integer,
+                                                ByRef lpVolumeSerialNumber As Integer, ByRef lpMaximumComponentLength As Integer, ByRef lpFileSystemFlags As Integer, ByRef lpFileSystemNameBuffer As Integer,
+                                                nFileSystemNameSize As Integer) As Integer
+
+    End Function
+    'BOOL WINAPI DeviceIoControl(
+    '  _In_         HANDLE hDevice,
+    '  _In_         DWORD dwIoControlCode,
+    '  _In_opt_     LPVOID lpInBuffer,
+    '  _In_         DWORD nInBufferSize,
+    '  _Out_opt_    LPVOID lpOutBuffer,
+    '  _In_         DWORD nOutBufferSize,
+    '  _Out_opt_    LPDWORD lpBytesReturned,
+    '  _Inout_opt_  LPOVERLAPPED lpOverlapped
+    ');
+
+    <DllImport("kernel32")>
+    Public Shared Function DeviceIoControl(hDevice As Integer, dwIoControlCode As Integer,
+                                           lpInBuffer As IntPtr, nInBufferSize As Integer,
+                                           lpOutBuffer As IntPtr, nOutBufferSize As Integer,
+                                           ByRef lpBytesReturned As Integer, lpOverlapped As IntPtr) As Integer
+
+    End Function
+
+    Public Const IOCTL_DISK_GET_LENGTH_INFO = 475228
 
     Public Shared Sub AssumeNoError()
         Dim errno = Win32Native.GetLastError()

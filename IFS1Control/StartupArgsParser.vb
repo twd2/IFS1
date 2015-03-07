@@ -5,8 +5,15 @@
     Public argObjs As New Dictionary(Of String, StartupArgsInfo)
 
     Public Sub AddArgument(name As String, sname As String, lname As String, minpc As Integer, maxpc As Integer)
-        shortName.Add(sname.ToLower()(0), name)
-        longName.Add(lname.ToLower(), name)
+        If sname = "" AndAlso lname = "" Then
+            Throw New ArgumentNullException("sname, lname")
+        End If
+        If sname <> "" Then
+            shortName.Add(sname.ToLower()(0), name)
+        End If
+        If lname <> "" Then
+            longName.Add(lname.ToLower(), name)
+        End If
         argObjs.Add(name, New StartupArgsInfo(minpc, maxpc))
     End Sub
 

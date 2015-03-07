@@ -92,6 +92,7 @@
     <Compile Include="Exception\IFS1TransactionCommittedException.vb" />
     <Compile Include="IFS1_InnerOperations.vb" />
     <Compile Include="Logger.vb" />
+    <Compile Include="MBR.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />
     <Compile Include="My Project\Application.Designer.vb">
       <AutoGen>True</AutoGen>
@@ -107,6 +108,7 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
+    <Compile Include="Partition.vb" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="My Project\Resources.resx">

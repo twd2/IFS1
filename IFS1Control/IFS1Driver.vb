@@ -160,7 +160,7 @@ Public Class IFS1Driver
 
     Public Function ReadFile(filename As String, buffer() As Byte, ByRef readBytes As UInteger, offset As Long, info As DokanFileInfo) As Integer Implements DokanOperations.ReadFile
         Try
-            ' ifs.Logger.WriteLine("ReadFile: " + filename)
+            'ifs.Logger.WriteLine("ReadFile: " + filename)
             readBytes = ifs.Read(filename, buffer, offset, 0, buffer.Length)
             Return 0
         Catch ex As Exception

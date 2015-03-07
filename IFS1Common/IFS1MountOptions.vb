@@ -7,5 +7,6 @@ Public Class IFS1MountOptions
     Public AutoSync As Boolean = False
     Public Check As Boolean = True
     Public Repair As Boolean = False
+    Public Cache As Boolean = True 'Unused
 
 End Class

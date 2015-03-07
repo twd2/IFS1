@@ -316,6 +316,15 @@ Public Class BinaryHelper
         End Try
     End Function
 
+    Public Shared Function BytesToStruct(Of T)(struct As T) As Byte()
+        Dim size = Marshal.SizeOf(GetType(T))
+        Dim bytes(size - 1) As Byte
+        Dim buffer = Marshal.AllocHGlobal(size)
+        Marshal.StructureToPtr(struct, buffer, True)
+        Marshal.Copy(buffer, bytes, 0, size)
+        Return bytes
+    End Function
+
     Private Shared _isLE As Boolean? = Nothing
     Public Shared Function IsLE() As Boolean
         If _isLE Is Nothing Then

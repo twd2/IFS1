@@ -2,6 +2,7 @@
 Imports System.IO
 Imports Dokan
 Imports System.Threading
+Imports System.Runtime.InteropServices
 
 Module EntryPoint
 
@@ -21,6 +22,7 @@ Module EntryPoint
         parser.AddArgument("Filename", "f", "file", 1, 1)
         parser.AddArgument("MountPoint", "m", "mountpoint", 1, 1)
         parser.AddArgument("Temporary", "t", "temp", 0, 0)
+        parser.AddArgument("DisableCache", "", "disablecache", 0, 0)
 
         Dim argobj = parser.Parse(args)
 
@@ -35,6 +37,7 @@ Module EntryPoint
         opt.Check = argobj("Check").found
         opt.Repair = argobj("Repair").found
         opt.ReadOnlyMount = argobj("ReadOnly").found
+        opt.Cache = Not argobj("DisableCache").found
 
         If argobj("Temporary").found Then
             MountMemoryDisk(args, opt)
@@ -78,33 +81,17 @@ Module EntryPoint
                 Return
             End If
 
-            Throw New NotImplementedException()
-
             Console.WriteLine("Mount using Dokan driver...")
 
             Dim mode = Win32Native.GENERIC_READ Or Win32Native.GENERIC_WRITE
             If argobj("ReadOnly").found Then
-                'mode = Win32Native.GENERIC_READ
+                mode = Win32Native.GENERIC_READ
             End If
-
-            Dim drvs = My.Computer.FileSystem.Drives
-            Dim drvinfo As DriveInfo = Nothing
-            For Each drv In drvs
-                If drv.Name(0) = argobj("Device").params(0)(0) Then 'AndAlso drv.DriveType <> DriveType.Fixed Then
-                    drvinfo = drv
-                End If
-            Next
-
-            If drvinfo Is Nothing Then
-                Throw New Exception("Drive not found")
-            End If
-
-            Dim totalSize = drvinfo.TotalSize
 
             Using ds As New DeviceStream(argobj("Device").params(0)(0) + ":", mode)
-                ds.SetLength(totalSize)
-                Using bs As New BufferedStream(ds, 16 * 1024 * 1024)
-                    Dim ifs As New IFS1(logger, bs, opt)
+                Debug.Print(ds.Length)
+                Using bs As New BufferedStream(ds, DeviceStream.BLOCK_LEN)
+                    Dim ifs As New IFS1(logger, ds, opt)
                     Mount(ifs, argobj("MountPoint").params(0))
                 End Using
             End Using
@@ -142,12 +129,6 @@ Module EntryPoint
         parser.AddArgument("Length", "l", "length", 1, 1)
         Dim argobj = parser.Parse(args)
 
-        If argobj("Length").params.Count <= 0 Then
-            Console.WriteLine("No length specified")
-            PrintUsage()
-            Return
-        End If
-
         If Not argobj("Device").found AndAlso Not argobj("Filename").found Then
             Console.WriteLine("Cannot neither device nor file")
             PrintUsage()
@@ -162,6 +143,11 @@ Module EntryPoint
         If argobj("Filename").found Then
             If argobj("Filename").params.Count <= 0 Then
                 Console.WriteLine("No file specified")
+                PrintUsage()
+                Return
+            End If
+            If argobj("Length").params.Count <= 0 Then
+                Console.WriteLine("No length specified")
                 PrintUsage()
                 Return
             End If
@@ -180,12 +166,34 @@ Module EntryPoint
                 Return
             End If
 
-            Throw New NotImplementedException()
+            Dim dev = argobj("Device").params(0)
+
+            Console.WriteLine("Making file system {0}", dev)
+
+            Using ds As New DeviceStream(dev(0) + ":", Win32Native.GENERIC_READ Or Win32Native.GENERIC_WRITE)
+                Debug.Print(ds.Length)
+                Using bs As New BufferedStream(ds, DeviceStream.BLOCK_LEN)
+                    IFS1.MakeFS(bs, ds.Length, True)
+                End Using
+            End Using
 
         End If
     End Sub
 
+    Private Sub test()
+        Dim a = Marshal.SizeOf(GetType(Partition))
+        Dim data = File.ReadAllBytes("mbr.bin")
+        Dim mbr = BinaryHelper.BytesToStruct(Of MBR)(data)
+        Dim data1 = BinaryHelper.BytesToStruct(Of MBR)(mbr)
+        For i = 0 To 511
+            Debug.Assert(data(i) = data1(i))
+        Next
+        'File.WriteAllBytes("boot.bin", mbr.BootCode)
+    End Sub
+
     Public Sub Main(args As String())
+        'test()
+
         If args.Length <= 0 Then
             PrintUsage()
             Return

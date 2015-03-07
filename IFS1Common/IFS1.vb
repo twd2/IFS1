@@ -77,7 +77,7 @@ Partial Public Class IFS1
             BlocksCache.Add(blk)
             blk = ReadBlock(False)
             blkid += 1
-            If _s.Position Mod 233 * 512 = 0 Then
+            If _s.Position Mod (233 * 512) = 0 Then
                 Console.Write("{0}Loading Blocks {1}/{2}                      ", Chr(13), CLng(_s.Position / BLOCK_LEN), CLng(_s.Length / BLOCK_LEN))
             End If
         Loop
@@ -1144,7 +1144,7 @@ Partial Public Class IFS1
                 Dim data = ms.ToArray()
                 s.Write(data, 0, data.Length)
             End Using
-            If i Mod 10 = 0 OrElse i = blockcount - 1 Then
+            If i Mod 233 = 0 OrElse i = blockcount - 1 Then
                 Console.Write("{0}Writing Blocks {1}/{2}                      ", Chr(13), i - FIRST_BLOCK_ID + 1, blockcount)
             End If
         Next
