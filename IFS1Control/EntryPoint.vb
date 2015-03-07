@@ -88,12 +88,14 @@ Module EntryPoint
                 mode = Win32Native.GENERIC_READ
             End If
 
-            Using ds As New DeviceStream(argobj("Device").params(0)(0) + ":", mode)
+            Dim dev = argobj("Device").params(0)
+
+            Using ds As New DeviceStream(dev, mode)
                 Debug.Print(ds.Length)
-                Using bs As New BufferedStream(ds, DeviceStream.BLOCK_LEN)
-                    Dim ifs As New IFS1(logger, ds, opt)
-                    Mount(ifs, argobj("MountPoint").params(0))
-                End Using
+                'Using bs As New BufferedStream(ds, DeviceStream.BLOCK_LEN)
+                Dim ifs As New IFS1(logger, ds, opt)
+                Mount(ifs, argobj("MountPoint").params(0))
+                'End Using
             End Using
         End If
     End Sub
@@ -170,9 +172,11 @@ Module EntryPoint
 
             Console.WriteLine("Making file system {0}", dev)
 
-            Using ds As New DeviceStream(dev(0) + ":", Win32Native.GENERIC_READ Or Win32Native.GENERIC_WRITE)
+            Using ds As New DeviceStream(dev, Win32Native.GENERIC_READ Or Win32Native.GENERIC_WRITE)
                 Debug.Print(ds.Length)
                 Using bs As New BufferedStream(ds, DeviceStream.BLOCK_LEN)
+                    Dim mbr As New MBR
+                    Array.Copy(My.Resources.boot, mbr.BootCode, mbr.BootCode.Length)
                     IFS1.MakeFS(bs, ds.Length, True)
                 End Using
             End Using
@@ -184,7 +188,7 @@ Module EntryPoint
         Dim a = Marshal.SizeOf(GetType(Partition))
         Dim data = File.ReadAllBytes("mbr.bin")
         Dim mbr = BinaryHelper.BytesToStruct(Of MBR)(data)
-        Dim data1 = BinaryHelper.BytesToStruct(Of MBR)(mbr)
+        Dim data1 = BinaryHelper.StructToBytes(Of MBR)(mbr)
         For i = 0 To 511
             Debug.Assert(data(i) = data1(i))
         Next

@@ -126,6 +126,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
+    <None Include="boot.bin" />
     <None Include="My Project\app.manifest">
       <SubType>Designer</SubType>
     </None>

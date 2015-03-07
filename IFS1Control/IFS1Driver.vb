@@ -93,12 +93,8 @@ Public Class IFS1Driver
 
     Public Function FindFiles(filename As String, files As ArrayList, info As DokanFileInfo) As Integer Implements DokanOperations.FindFiles
         Try
-            filename = filename.Replace("\"c, "/"c)
-            If filename.Last <> "/" Then
-                filename += "/"
-            End If
             ifs.Logger.WriteLine("FindFiles: " + filename)
-            Dim blk As IFS1DirBlock = ifs.GetBlockByPathStrict(filename)
+            Dim blk As IFS1DirBlock = ifs.GetBlockByPath(filename)
             Dim subblks = ifs.GetSubBlocks(blk)
             For Each subblk In subblks
                 files.Add(GetBlockInfo(subblk))

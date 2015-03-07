@@ -22,7 +22,7 @@ Class DeviceStream
     Private _mode As Integer
     Private _currentSector As ULong = 0
 
-    Sub New(deviceName As String, mode As Integer)
+    Public Sub New(deviceName As String, mode As Integer)
         _mode = mode
         _dev = deviceName
         hFile = Win32Native.CreateFile("\\.\" + deviceName, _mode Or Win32Native.GENERIC_READ, 0, 0, Win32Native.OPEN_EXISTING, 0, 0)

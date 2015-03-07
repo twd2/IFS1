@@ -61,17 +61,26 @@ Namespace My.Resources
         End Property
         
         '''<summary>
+        '''  查找 System.Byte[] 类型的本地化资源。
+        '''</summary>
+        Friend ReadOnly Property boot() As Byte()
+            Get
+                Dim obj As Object = ResourceManager.GetObject("boot", resourceCulture)
+                Return CType(obj,Byte())
+            End Get
+        End Property
+        
+        '''<summary>
         '''  查找类似 ifs1 &lt;command&gt; [&lt;arguments&gt;]
         '''Commands:
-        '''        mount, m -dfrs                          Mount IFS1
+        '''        mount, m -dflrst                        Mount IFS1
         '''        mkfs, makefs -dfl                       Make file/device IFS1
         '''Arguments:
         '''        -c, --check                             Check when mount
         '''        -f, --file filename; -d, --dev [A-Z]:\  File or device name
+        '''        -l, --length length(B/K/M/G/T)          Length for make file system
         '''        -m, --mountpoint [A-Z]                  Mount point
-        '''        -l, --length length(B/K/M/G/T)          Length for mkfs
-        '''        -r, --readonly                          Readonly Mount
-        '''    [字符串的其余部分被截断]&quot;; 的本地化字符串。
+        '''        -p, --repair                            Repair  [字符串的其余部分被截断]&quot;; 的本地化字符串。
         '''</summary>
         Friend ReadOnly Property usage() As String
             Get

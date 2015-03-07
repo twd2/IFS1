@@ -1090,24 +1090,26 @@ Partial Public Class IFS1
         Return flag
     End Function
 
-    Public Shared Sub MakeFS(filename As String, length As ULong, writePreserve As Boolean)
+    Public Shared Sub MakeFS(filename As String, length As ULong, writePreserve As Boolean, Optional mbr As MBR = Nothing)
         Using fs As New FileStream(filename, FileMode.Create, FileAccess.Write)
-            MakeFS(fs, length, writePreserve)
+            MakeFS(fs, length, writePreserve, mbr)
         End Using
     End Sub
 
-    Public Shared Sub MakeFS(s As Stream, length As ULong, writePreserve As Boolean)
+    Public Shared Sub MakeFS(s As Stream, length As ULong, writePreserve As Boolean, Optional mbr As MBR = Nothing)
         Dim Logger As New LoggerWrapper(Console.Out)
 
         Dim blockcount = Math.Floor(length / BLOCK_LEN)
 
-        's.Seek(510, SeekOrigin.Begin)
-        Dim sec0(512 - 1) As Byte
-        sec0(510) = &H55
-        sec0(511) = &HAA
-        s.Write(sec0, 0, sec0.Length)
-        's.WriteByte(&H55)
-        's.WriteByte(&HAA)
+        If mbr IsNot Nothing Then
+            Dim sec0 = BinaryHelper.StructToBytes(Of MBR)(mbr)
+            s.Write(sec0, 0, sec0.Length)
+        Else
+            Dim sec0(512 - 1) As Byte
+            sec0(510) = &H55
+            sec0(511) = &HAA
+            s.Write(sec0, 0, sec0.Length)
+        End If
 
         Dim rootblock As New IFS1DirBlock
         rootblock.Name = "/"
