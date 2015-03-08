@@ -75,7 +75,8 @@ Class DeviceStream
 
     Public Overrides Property Position As Long = 0
 
-    Private sectorData(BLOCK_LEN - 1) As Byte
+    'TODO: 多线程的话不能用一个sectorBuffer
+    Private sectorBuffer(BLOCK_LEN - 1) As Byte
 
     Public Overrides Function Read(buffer() As Byte, offset As Integer, count As Integer) As Integer
         If Position >= Length Then
@@ -108,7 +109,7 @@ Class DeviceStream
             Else '否则需要裁剪
                 Dim win32read = 0
                 SeekToSector(indexOfSector)
-                Dim code = Win32Native.ReadFile(hFile, sectorData(0), SECTOR_LEN, win32read, 0)
+                Dim code = Win32Native.ReadFile(hFile, sectorBuffer(0), SECTOR_LEN, win32read, 0)
                 If code <> 1 Then
                     Win32Native.AssumeNoError()
                 End If
@@ -120,7 +121,7 @@ Class DeviceStream
                                      Length - currentOffset)
 
                 If currentread > 0 Then
-                    Array.Copy(sectorData, offsetOfSector, buffer, readLength + offset, currentread)
+                    Array.Copy(sectorBuffer, offsetOfSector, buffer, readLength + offset, currentread)
                 Else
                     Position += readLength
                     Return readLength
@@ -188,7 +189,7 @@ Class DeviceStream
                 'Dim sectorData(SECTOR_LEN - 1) As Byte
                 Dim win32read = 0
                 SeekToSector(indexOfSector)
-                Dim code = Win32Native.ReadFile(hFile, sectorData(0), SECTOR_LEN, win32read, 0)
+                Dim code = Win32Native.ReadFile(hFile, sectorBuffer(0), SECTOR_LEN, win32read, 0)
                 If code <> 1 Then
                     Win32Native.AssumeNoError()
                 End If
@@ -200,10 +201,10 @@ Class DeviceStream
                                      Length - currentoffset)
 
                 If currentwrite > 0 Then
-                    Array.Copy(buffer, writtenLength + offset, sectorData, offsetOfSector, currentwrite)
+                    Array.Copy(buffer, writtenLength + offset, sectorBuffer, offsetOfSector, currentwrite)
                     Dim win32wrote = 0
                     SeekToSector(indexOfSector)
-                    code = Win32Native.WriteFile(hFile, sectorData(0), SECTOR_LEN, win32wrote, 0)
+                    code = Win32Native.WriteFile(hFile, sectorBuffer(0), SECTOR_LEN, win32wrote, 0)
                     If code <> 1 Then
                         Win32Native.AssumeNoError()
                     End If

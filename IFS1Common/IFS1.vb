@@ -878,6 +878,8 @@ Partial Public Class IFS1
         {IFS1Block.BlockType.SoftLink, 65536}
     }
     Public Const FIRST_READ_LEN = 512
+
+    'TODO: 多线程的话不能用一个cacheMS
     Private _cacheMS As New MemoryStream(BLOCK_LEN)
 
     Public Function ReadBlock(Optional readdata As Boolean = True) As IFS1Block
