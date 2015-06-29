@@ -1,9 +1,9 @@
-﻿Imports Dokan
+﻿Imports DokanNet
 Imports IFS1Common
 Imports System.IO
 
 Public Class IFS1Driver
-    Implements DokanOperations
+    Implements IDokanOperations
 
     Private ifs As IFS1
 
@@ -11,53 +11,53 @@ Public Class IFS1Driver
         Me.ifs = ifs
     End Sub
 
-    Public Function Cleanup(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.Cleanup
+    Public Function Cleanup(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.Cleanup
         ' ifs.Logger.WriteLine("Cleanup: " + filename)
         ifs.Sync()
-        Return 0
+        Return DokanError.ErrorSuccess
     End Function
 
-    Public Function CloseFile(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.CloseFile
+    Public Function CloseFile(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.CloseFile
         ifs.Logger.WriteLine("CloseFile: " + filename)
         ifs.Sync()
-        Return 0
+        Return DokanError.ErrorSuccess
     End Function
 
-    Public Function CreateDirectory(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.CreateDirectory
+    Public Function CreateDirectory(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.CreateDirectory
         Try
             ifs.Logger.WriteLine("CreateDirectory: " + filename)
             ifs.CreateDir(filename)
             ifs.Sync()
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function CreateFile(filename As String, access As IO.FileAccess, share As IO.FileShare, mode As IO.FileMode, options As IO.FileOptions, info As DokanFileInfo) As Integer Implements DokanOperations.CreateFile
+    Public Function CreateFile(filename As String, access As DokanNet.FileAccess, share As IO.FileShare, mode As IO.FileMode, options As IO.FileOptions, attributes As IO.FileAttributes, info As DokanFileInfo) As DokanError Implements IDokanOperations.CreateFile
         Try
             ifs.Logger.WriteLine("CreateFile: " + filename)
             If ifs.DirExists(filename) Then
                 info.IsDirectory = True
-                Return 0
+                Return DokanError.ErrorSuccess
             End If
             If mode = FileMode.CreateNew AndAlso ifs.FileExists(filename) Then
-                Return -DokanNet.ERROR_ALREADY_EXISTS
+                Return DokanError.ErrorAlreadyExists
             End If
             If mode = FileMode.Open AndAlso Not ifs.FileExists(filename) Then
-                Return -DokanNet.ERROR_FILE_NOT_FOUND
+                Return DokanError.ErrorFileNotFound
             End If
             If Not ifs.FileExists(filename) Then
                 ifs.CreateEmptyFile(filename)
                 ifs.Sync()
             End If
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function DeleteDirectory(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.DeleteDirectory
+    Public Function DeleteDirectory(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.DeleteDirectory
         Try
             ifs.Logger.WriteLine("DeleteDirectory: " + filename)
             Try
@@ -68,13 +68,13 @@ Public Class IFS1Driver
                 ifs.DeleteSoftLink(filename)
                 ifs.Sync()
             End Try
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function DeleteFile(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.DeleteFile
+    Public Function DeleteFile(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.DeleteFile
         Try
             ifs.Logger.WriteLine("DeleteFile: " + filename)
             Try
@@ -85,139 +85,140 @@ Public Class IFS1Driver
                 ifs.DeleteSoftLink(filename)
                 ifs.Sync()
             End Try
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function FindFiles(filename As String, files As ArrayList, info As DokanFileInfo) As Integer Implements DokanOperations.FindFiles
+    Public Function FindFiles(filename As String, ByRef files As IList(Of FileInformation), info As DokanFileInfo) As DokanError Implements IDokanOperations.FindFiles
         Try
+            files = New List(Of FileInformation)
             ifs.Logger.WriteLine("FindFiles: " + filename)
             Dim blk As IFS1DirBlock = ifs.GetBlockByPath(filename)
             Dim subblks = ifs.GetSubBlocks(blk)
             For Each subblk In subblks
                 files.Add(GetBlockInfo(subblk))
             Next
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function FlushFileBuffers(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.FlushFileBuffers
+    Public Function FlushFileBuffers(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.FlushFileBuffers
         ifs.Sync()
-        Return 0
+        Return DokanError.ErrorSuccess
     End Function
 
-    Public Function GetDiskFreeSpace(ByRef freeBytesAvailable As ULong, ByRef totalBytes As ULong, ByRef totalFreeBytes As ULong, info As DokanFileInfo) As Integer Implements DokanOperations.GetDiskFreeSpace
+    Public Function GetDiskFreeSpace(ByRef freeBytesAvailable As Long, ByRef totalBytes As Long, ByRef used As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetDiskFreeSpace
         totalBytes = ifs.CountTotalBlocks() * IFS1.BLOCK_LEN
-        freeBytesAvailable = totalBytes - ifs.CountUsedBlocks() * IFS1.BLOCK_LEN
-        totalFreeBytes = freeBytesAvailable
-        Return 0
+        used = ifs.CountUsedBlocks() * IFS1.BLOCK_LEN
+        freeBytesAvailable = totalBytes - used
+        Return DokanError.ErrorSuccess
     End Function
 
-    Public Function GetFileInformation(filename As String, fi As FileInformation, info As DokanFileInfo) As Integer Implements DokanOperations.GetFileInformation
+    Public Function GetFileInformation(filename As String, ByRef fi As FileInformation, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetFileInformation
         Try
             ifs.Logger.WriteLine("GetFileInformation: " + filename)
             Dim blk = ifs.GetBlockByPath(filename)
 
             GetBlockInfo(fi, blk)
 
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function LockFile(filename As String, offset As Long, length As Long, info As DokanFileInfo) As Integer Implements DokanOperations.LockFile
+    Public Function LockFile(filename As String, offset As Long, length As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.LockFile
         'TODO
-        Return -DokanNet.ERROR_ACCESS_DENIED
+        Return DokanError.ErrorAccessDenied
     End Function
 
-    Public Function MoveFile(filename As String, newname As String, replace As Boolean, info As DokanFileInfo) As Integer Implements DokanOperations.MoveFile
+    Public Function MoveFile(filename As String, newname As String, replace As Boolean, info As DokanFileInfo) As DokanError Implements IDokanOperations.MoveFile
         Try
             ifs.Logger.WriteLine("MoveFile: " + filename)
             ifs.Move(filename, newname)
             ifs.Sync()
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function OpenDirectory(filename As String, info As DokanFileInfo) As Integer Implements DokanOperations.OpenDirectory
+    Public Function OpenDirectory(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.OpenDirectory
         If ifs.DirExists(filename) Then
-            Return 0
+            Return DokanError.ErrorSuccess
         Else
-            Return -DokanNet.ERROR_PATH_NOT_FOUND
+            Return DokanError.ErrorPathNotFound
         End If
     End Function
 
-    Public Function ReadFile(filename As String, buffer() As Byte, ByRef readBytes As UInteger, offset As Long, info As DokanFileInfo) As Integer Implements DokanOperations.ReadFile
+    Public Function ReadFile(filename As String, buffer() As Byte, ByRef readBytes As Integer, offset As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.ReadFile
         Try
             'ifs.Logger.WriteLine("ReadFile: " + filename)
             readBytes = ifs.Read(filename, buffer, offset, 0, buffer.Length)
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function SetAllocationSize(filename As String, length As Long, info As DokanFileInfo) As Integer Implements DokanOperations.SetAllocationSize
+    Public Function SetAllocationSize(filename As String, length As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.SetAllocationSize
         Try
             ifs.Logger.WriteLine("SetAllocationSize: " + filename)
             Dim fileblk = ifs.GetBlockByPathStrict(filename, IFS1Block.BlockType.File)
             ifs.Resize(fileblk, length)
             ifs.Sync()
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function SetEndOfFile(filename As String, length As Long, info As DokanFileInfo) As Integer Implements DokanOperations.SetEndOfFile
+    Public Function SetEndOfFile(filename As String, length As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.SetEndOfFile
         Try
             ifs.Logger.WriteLine("SetEndOfFile: " + filename)
             Dim fileblk = ifs.GetBlockByPathStrict(filename, IFS1Block.BlockType.File)
             ifs.Resize(fileblk, length)
             ifs.Sync()
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function SetFileAttributes(filename As String, attr As IO.FileAttributes, info As DokanFileInfo) As Integer Implements DokanOperations.SetFileAttributes
+    Public Function SetFileAttributes(filename As String, attr As IO.FileAttributes, info As DokanFileInfo) As DokanError Implements IDokanOperations.SetFileAttributes
         'TODO
-        Return -DokanNet.ERROR_ACCESS_DENIED
+        Return DokanError.ErrorAccessDenied
     End Function
 
-    Public Function SetFileTime(filename As String, ctime As Date?, atime As Date?, mtime As Date?, info As DokanFileInfo) As Integer Implements DokanOperations.SetFileTime
+    Public Function SetFileTime(filename As String, ctime As Date?, atime As Date?, mtime As Date?, info As DokanFileInfo) As DokanError Implements IDokanOperations.SetFileTime
         Try
             ifs.Logger.WriteLine("SetFileTime: " + filename)
             ifs.SetTime(filename, ctime, atime, mtime)
             ifs.Sync()
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
     End Function
 
-    Public Function UnlockFile(filename As String, offset As Long, length As Long, info As DokanFileInfo) As Integer Implements DokanOperations.UnlockFile
+    Public Function UnlockFile(filename As String, offset As Long, length As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.UnlockFile
         'TODO
-        Return -DokanNet.ERROR_ACCESS_DENIED
+        Return DokanError.ErrorAccessDenied
     End Function
 
-    Public Function Unmount(info As DokanFileInfo) As Integer Implements DokanOperations.Unmount
-        Return 0
+    Public Function Unmount(info As DokanFileInfo) As DokanError Implements IDokanOperations.Unmount
+        Return DokanError.ErrorSuccess
     End Function
 
-    Public Function WriteFile(filename As String, buffer() As Byte, ByRef writtenBytes As UInteger, offset As Long, info As DokanFileInfo) As Integer Implements DokanOperations.WriteFile
+    Public Function WriteFile(filename As String, buffer() As Byte, ByRef writtenBytes As Integer, offset As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.WriteFile
         Try
             'Console.WriteLine("WriteFile: " + filename)
             writtenBytes = ifs.Write(filename, buffer, offset, 0, buffer.Length)
-            Return 0
+            Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
         End Try
@@ -229,7 +230,7 @@ Public Class IFS1Driver
         Return fi
     End Function
 
-    Private Sub GetBlockInfo(fi As FileInformation, blk As IFS1Block)
+    Private Sub GetBlockInfo(ByRef fi As FileInformation, blk As IFS1Block)
         If ifs.opt.ReadOnlyMount Then
             fi.Attributes = fi.Attributes Or FileAttributes.ReadOnly
         End If
@@ -278,6 +279,23 @@ Public Class IFS1Driver
             fi.Attributes = fi.Attributes Or FileAttributes.Normal
         End If
     End Sub
+
+    Public Function GetFileSecurity(fileName As String, ByRef security As System.Security.AccessControl.FileSystemSecurity, sections As System.Security.AccessControl.AccessControlSections, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetFileSecurity
+        ifs.Logger.WriteLine("GetFileSecurity: " + fileName)
+        security = Nothing
+        Return DokanError.ErrorError
+    End Function
+
+    Public Function SetFileSecurity(fileName As String, security As System.Security.AccessControl.FileSystemSecurity, sections As System.Security.AccessControl.AccessControlSections, info As DokanFileInfo) As DokanNet.DokanError Implements IDokanOperations.SetFileSecurity
+        ifs.Logger.WriteLine("SetFileSecurity: " + fileName)
+        Return DokanError.ErrorError
+    End Function
+
+    Public Function GetVolumeInformation(ByRef volumeLabel As String, ByRef features As FileSystemFeatures, ByRef fileSystemName As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetVolumeInformation
+        volumeLabel = "IFS1"
+        fileSystemName = "IFS1"
+        Return DokanError.ErrorSuccess
+    End Function
 
     Public Function exceptionToDokanCode(ex As Exception) As Int32
         If TypeOf ex Is IFS1AllocationFailedException Then

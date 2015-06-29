@@ -1,6 +1,6 @@
 ﻿Imports IFS1Common
 Imports System.IO
-Imports Dokan
+Imports DokanNet
 Imports System.Threading
 Imports System.Runtime.InteropServices
 
@@ -62,9 +62,9 @@ Module EntryPoint
                 Return
             End If
 
-            Dim fa = FileAccess.ReadWrite
+            Dim fa = IO.FileAccess.ReadWrite
             If argobj("ReadOnly").found Then
-                fa = FileAccess.Read
+                fa = IO.FileAccess.Read
             End If
 
             Console.WriteLine("Mount using Dokan driver...")
@@ -108,7 +108,7 @@ Module EntryPoint
         If l.Last = "I"c Then
             l = l.Substring(0, l.Length - 1)
         End If
-        Dim ch = l.Last
+        Dim ch = l.Last.ToString().ToUpper()
         l = l.Substring(0, l.Length - 1)
         Dim val As ULong = ULong.Parse(l)
         Select Case ch
@@ -250,39 +250,21 @@ Module EntryPoint
     End Sub
 
     Sub Mount(ifs As IFS1, symbol As Char)
-        Dim opt As New DokanOptions()
-        opt.DebugMode = True
-        opt.MountPoint = symbol + ":\"
-        opt.VolumeLabel = "IFS1"
-        opt.ThreadCount = 1
-        opt.FileSystemName = "IFS1"
-
+        Dim drv As New IFS1Driver(ifs)
         Dim T As New Thread(Sub()
-                                Dim drv As New IFS1Driver(ifs)
-                                Dim status As Integer = DokanNet.DokanMain(opt, drv)
-                                Select Case status
-                                    Case DokanNet.DOKAN_DRIVE_LETTER_ERROR
-                                        logger.WriteLine("DokanNet: Driver letter error")
-                                    Case DokanNet.DOKAN_DRIVER_INSTALL_ERROR
-                                        logger.WriteLine("DokanNet: Driver install error")
-                                    Case DokanNet.DOKAN_MOUNT_ERROR
-                                        logger.WriteLine("DokanNet: Mount error")
-                                    Case DokanNet.DOKAN_START_ERROR
-                                        logger.WriteLine("DokanNet: Start error")
-                                    Case DokanNet.DOKAN_ERROR
-                                        logger.WriteLine("DokanNet: Unknown error")
-                                    Case DokanNet.DOKAN_SUCCESS
-                                        'logger.WriteLine("Success")
-                                    Case Else
-                                        logger.WriteLine("DokanNet: Unknown status: {0}", status)
-                                End Select
+                                Try
+                                    drv.Mount(symbol + ":\", DokanOptions.FixedDrive Or DokanOptions.DebugMode, 1)
+                                    Console.WriteLine("Success")
+                                Catch ex As DokanException
+                                    Console.WriteLine("Error: " + ex.ToString())
+                                End Try
                             End Sub)
         T.Start()
         Console.Title = "Press any key to unmount."
         logger.WriteLine(Console.Title)
         Console.ReadKey()
-        Dim unmount = DokanNet.DokanUnmount(symbol)
-        logger.WriteLine("Unmount: {0}", IIf(unmount = 1, "done.", "Failed!"))
+        Dim unmount = Dokan.Unmount(symbol)
+        logger.WriteLine("Unmount: {0}", IIf(unmount, "done.", "Failed!"))
         T.Join()
         'Console.ReadKey()
         Environment.Exit(0)
