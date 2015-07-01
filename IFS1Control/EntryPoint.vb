@@ -254,7 +254,7 @@ Module EntryPoint
         Dim T As New Thread(Sub()
                                 Try
                                     drv.Mount(symbol + ":\", DokanOptions.FixedDrive Or DokanOptions.DebugMode, 1)
-                                    Console.WriteLine("Success")
+                                    'Console.WriteLine("Success")
                                 Catch ex As DokanException
                                     Console.WriteLine("Error: " + ex.ToString())
                                 End Try
@@ -265,7 +265,7 @@ Module EntryPoint
         Console.ReadKey()
         Dim unmount = Dokan.Unmount(symbol)
         logger.WriteLine("Unmount: {0}", IIf(unmount, "done.", "Failed!"))
-        T.Join()
+        'T.Join()
         'Console.ReadKey()
         Environment.Exit(0)
     End Sub

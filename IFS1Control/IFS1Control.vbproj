@@ -148,6 +148,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DeviceStream.vb" />
+    <Compile Include="FileContext.vb" />
     <Compile Include="IFS1Driver.vb" />
     <Compile Include="EntryPoint.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />

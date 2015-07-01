@@ -13,12 +13,24 @@ Public Class IFS1Driver
 
     Public Function Cleanup(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.Cleanup
         ' ifs.Logger.WriteLine("Cleanup: " + filename)
+        If TypeOf info.Context Is FileContext Then
+            Dim fc = DirectCast(info.Context, FileContext)
+            If fc.options And FileOptions.DeleteOnClose Then
+                DeleteFile(filename, info)
+            End If
+        End If
         ifs.Sync()
         Return DokanError.ErrorSuccess
     End Function
 
     Public Function CloseFile(filename As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.CloseFile
         ifs.Logger.WriteLine("CloseFile: " + filename)
+        If TypeOf info.Context Is FileContext Then
+            Dim fc = DirectCast(info.Context, FileContext)
+            If fc.options And FileOptions.DeleteOnClose Then
+                DeleteFile(filename, info)
+            End If
+        End If
         ifs.Sync()
         Return DokanError.ErrorSuccess
     End Function
@@ -39,6 +51,7 @@ Public Class IFS1Driver
             ifs.Logger.WriteLine("CreateFile: " + filename)
             If ifs.DirExists(filename) Then
                 info.IsDirectory = True
+                info.Context = New Object()
                 Return DokanError.ErrorSuccess
             End If
             If mode = FileMode.CreateNew AndAlso ifs.FileExists(filename) Then
@@ -51,6 +64,16 @@ Public Class IFS1Driver
                 ifs.CreateEmptyFile(filename)
                 ifs.Sync()
             End If
+
+            Dim fc As New FileContext()
+            fc.filename = filename
+            fc.access = access
+            fc.attributes = attributes
+            fc.mode = mode
+            fc.options = options
+            fc.share = share
+            info.Context = fc
+
             Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
@@ -123,7 +146,7 @@ Public Class IFS1Driver
             ifs.Logger.WriteLine("GetFileInformation: " + filename)
             Dim blk = ifs.GetBlockByPath(filename)
 
-            GetBlockInfo(fi, blk)
+            fi = GetBlockInfo(blk)
 
             Return DokanError.ErrorSuccess
         Catch ex As Exception
@@ -226,11 +249,6 @@ Public Class IFS1Driver
 
     Private Function GetBlockInfo(blk As IFS1Block) As FileInformation
         Dim fi As New FileInformation
-        GetBlockInfo(fi, blk)
-        Return fi
-    End Function
-
-    Private Sub GetBlockInfo(ByRef fi As FileInformation, blk As IFS1Block)
         If ifs.opt.ReadOnlyMount Then
             fi.Attributes = fi.Attributes Or FileAttributes.ReadOnly
         End If
@@ -238,7 +256,7 @@ Public Class IFS1Driver
         If blk.type = IFS1Block.BlockType.SoftLink Then
             Dim softlink = DirectCast(blk, IFS1SoftLinkBlock)
             Try
-                GetBlockInfo(fi, ifs.GetBlockByPath(softlink.To))
+                fi = GetBlockInfo(ifs.GetBlockByPath(softlink.To))
             Catch ex As Exception
                 fi.Length = IFS1.BLOCK_LEN
                 fi.Attributes = FileAttributes.Hidden
@@ -247,7 +265,7 @@ Public Class IFS1Driver
                 fi.LastWriteTime = DateTime.Now
             End Try
             fi.FileName = softlink.Name
-            Return
+            Return fi
         End If
 
         If Not TypeOf blk Is IFS1BlockWithName Then
@@ -278,7 +296,8 @@ Public Class IFS1Driver
         Else
             fi.Attributes = fi.Attributes Or FileAttributes.Normal
         End If
-    End Sub
+        Return fi
+    End Function
 
     Public Function GetFileSecurity(fileName As String, ByRef security As System.Security.AccessControl.FileSystemSecurity, sections As System.Security.AccessControl.AccessControlSections, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetFileSecurity
         ifs.Logger.WriteLine("GetFileSecurity: " + fileName)
