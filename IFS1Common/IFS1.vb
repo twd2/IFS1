@@ -263,7 +263,7 @@ Partial Public Class IFS1
                 End If
 
                 If i = pathArray.Length - 1 Then
-                    '最后一个了，允许为文件或者符号连接
+                    '最后一个了，允许为文件、目录或者符号连接
                     If subblk.type = type OrElse type = IFS1Block.BlockType.Raw Then
                         '找到了符合type要求的block
                         '如果是Raw的话，所有block都符合要求
@@ -281,6 +281,7 @@ Partial Public Class IFS1
                         End If
                     End If
                 Else
+                    '路径中，只能是目录或者符号链接
                     If subblk.type = IFS1Block.BlockType.SoftLink OrElse
                        subblk.type = IFS1Block.BlockType.Dir Then
                         found = True
@@ -304,7 +305,10 @@ Partial Public Class IFS1
 
     Public Function Read(path As String, buffer As Byte(), fileoffset As UInt32, bufferoffset As UInt32, count As UInt32) As UInt32
         Dim blk As IFS1FileBlock = GetBlockByPathStrict(path, IFS1Block.BlockType.File)
+        Return Read(blk, buffer, fileoffset, bufferoffset, count)
+    End Function
 
+    Public Function Read(blk As IFS1FileBlock, buffer As Byte(), fileoffset As UInt32, bufferoffset As UInt32, count As UInt32) As UInt32
         If fileoffset >= blk.Length Then
             Return 0
         End If
@@ -472,9 +476,18 @@ Partial Public Class IFS1
             Throw New IFS1NoPermissionException()
         End If
         Dim blk As IFS1FileBlock = GetBlockByPathStrict(path, IFS1Block.BlockType.File)
+        Return Write(blk, buffer, fileoffset, bufferoffset, count)
+    End Function
 
-        If fileoffset + buffer.Length > blk.Length Then
-            Expand(blk, fileoffset + buffer.Length)
+    Public Function Write(blk As IFS1FileBlock, buffer As Byte(), fileoffset As UInt32, bufferoffset As UInt32, count As UInt32) As UInt32
+        If opt.ReadOnlyMount Then
+            Throw New IFS1NoPermissionException()
+        End If
+
+        Debug.Assert(count <= buffer.Length)
+
+        If fileoffset + count > blk.Length Then
+            Expand(blk, fileoffset + count)
             Sync()
         End If
 
@@ -794,6 +807,7 @@ Partial Public Class IFS1
                 subblk.used = 0
                 EnqueueBlockChange(subblk)
             End If
+            blk.SubBlockIDs(i) = INVALID_BLOCK_ID
         Next
 
         blk.used = 0

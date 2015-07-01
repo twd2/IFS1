@@ -31,6 +31,7 @@ Public Class IFS1Driver
                 DeleteFile(filename, info)
             End If
         End If
+        info.Context = Nothing
         ifs.Sync()
         Return DokanError.ErrorSuccess
     End Function
@@ -49,11 +50,13 @@ Public Class IFS1Driver
     Public Function CreateFile(filename As String, access As DokanNet.FileAccess, share As IO.FileShare, mode As IO.FileMode, options As IO.FileOptions, attributes As IO.FileAttributes, info As DokanFileInfo) As DokanError Implements IDokanOperations.CreateFile
         Try
             ifs.Logger.WriteLine("CreateFile: " + filename)
+
             If ifs.DirExists(filename) Then
                 info.IsDirectory = True
                 info.Context = New Object()
                 Return DokanError.ErrorSuccess
             End If
+
             If mode = FileMode.CreateNew AndAlso ifs.FileExists(filename) Then
                 Return DokanError.ErrorAlreadyExists
             End If
@@ -66,6 +69,9 @@ Public Class IFS1Driver
             End If
 
             Dim fc As New FileContext()
+            If access And (DokanNet.FileAccess.AppendData Or DokanNet.FileAccess.Execute Or DokanNet.FileAccess.GenericExecute Or DokanNet.FileAccess.GenericRead Or DokanNet.FileAccess.GenericWrite Or DokanNet.FileAccess.ReadData Or DokanNet.FileAccess.WriteData) Then
+                fc.blk = ifs.GetBlockByPathStrict(filename)
+            End If
             fc.filename = filename
             fc.access = access
             fc.attributes = attributes
@@ -138,6 +144,9 @@ Public Class IFS1Driver
         totalBytes = ifs.CountTotalBlocks() * IFS1.BLOCK_LEN
         used = ifs.CountUsedBlocks() * IFS1.BLOCK_LEN
         freeBytesAvailable = totalBytes - used
+
+        used = freeBytesAvailable 'TODO: !!!
+
         Return DokanError.ErrorSuccess
     End Function
 
@@ -181,7 +190,14 @@ Public Class IFS1Driver
     Public Function ReadFile(filename As String, buffer() As Byte, ByRef readBytes As Integer, offset As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.ReadFile
         Try
             'ifs.Logger.WriteLine("ReadFile: " + filename)
-            readBytes = ifs.Read(filename, buffer, offset, 0, buffer.Length)
+            If info.Context IsNot Nothing Then
+                If TypeOf info.Context Is FileContext Then
+                    Dim fc = DirectCast(info.Context, FileContext)
+                    readBytes = ifs.Read(fc.blk, buffer, offset, 0, buffer.Length)
+                End If
+            Else
+                readBytes = ifs.Read(filename, buffer, offset, 0, buffer.Length)
+            End If
             Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)
@@ -240,7 +256,14 @@ Public Class IFS1Driver
     Public Function WriteFile(filename As String, buffer() As Byte, ByRef writtenBytes As Integer, offset As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.WriteFile
         Try
             'Console.WriteLine("WriteFile: " + filename)
-            writtenBytes = ifs.Write(filename, buffer, offset, 0, buffer.Length)
+            If info.Context IsNot Nothing Then
+                If TypeOf info.Context Is FileContext Then
+                    Dim fc = DirectCast(info.Context, FileContext)
+                    writtenBytes = ifs.Write(fc.blk, buffer, offset, 0, buffer.Length)
+                End If
+            Else
+                writtenBytes = ifs.Write(filename, buffer, offset, 0, buffer.Length)
+            End If
             Return DokanError.ErrorSuccess
         Catch ex As Exception
             Return exceptionToDokanCode(ex)

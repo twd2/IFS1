@@ -1,4 +1,8 @@
-﻿Public Class FileContext
+﻿Imports IFS1Common
+
+Public Class FileContext
+
+    Public [when] As DateTime = DateTime.Now
 
     Public filename As String
 
@@ -7,6 +11,8 @@
         mode As IO.FileMode,
         options As IO.FileOptions,
         attributes As IO.FileAttributes
+
+    Public blk As IFS1FileBlock
 
     Public Sub New()
 
