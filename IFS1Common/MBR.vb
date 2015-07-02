@@ -14,6 +14,6 @@ Public Class MBR
 
     Public Sub New()
         Ending(0) = &H55
-        Ending(0) = &HAA
+        Ending(1) = &HAA
     End Sub
 End Class
