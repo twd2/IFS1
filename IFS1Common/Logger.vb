@@ -27,7 +27,9 @@ Public Class LoggerWrapper
     End Sub
 
     Public Overrides Sub Write(value As String)
-        _innerTW.Write(value)
+        If _innerTW IsNot Nothing Then
+            _innerTW.Write(value)
+        End If
     End Sub
 
     Public Overrides ReadOnly Property Encoding As Text.Encoding

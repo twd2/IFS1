@@ -4,8 +4,8 @@ Public Class IFS1DataBlock
     Inherits IFS1Block
     Implements IFS1BlockWithLength
 
-    Public Const RESERVE_LENGTH = 500
-    Public Const DATA_LENGTH = 65024
+    Public Const RESERVE_LENGTH = 32
+    Public Const DATA_LENGTH = 65492
 
     '//12
     'int32	used;						//1=使用, 0=未使用

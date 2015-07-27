@@ -15,8 +15,8 @@ Public Class IFS1SoftLinkBlock
     '//65024
     'int8				to[65024];			//指向何方
 
-    Public Const NAME_BYTE_LENGTH = 256
-    Private namedata(NAME_BYTE_LENGTH - 1) As Byte
+    Public Const MAX_NAME_BYTE_LENGTH = 256
+    Private namedata(MAX_NAME_BYTE_LENGTH - 1) As Byte
 
     Public Const RESERVE_LENGTH = 248
 
@@ -34,7 +34,7 @@ Public Class IFS1SoftLinkBlock
         If r.type <> BlockType.SoftLink Then
             Throw New IFS1BadFileSystemException("Type mismatch!")
         End If
-        BinaryHelper.SafeRead(s, r.namedata, 0, NAME_BYTE_LENGTH)
+        BinaryHelper.SafeRead(s, r.namedata, 0, MAX_NAME_BYTE_LENGTH)
         r._name = BinaryHelper.GetString(r.namedata)
         s.Seek(RESERVE_LENGTH, SeekOrigin.Current) 'skip
         BinaryHelper.SafeRead(s, r.todata, 0, TO_BYTE_LENGTH)
@@ -45,7 +45,7 @@ Public Class IFS1SoftLinkBlock
     Public Overrides Sub Write(s As Stream, buffered As Boolean)
         BinaryHelper.WriteInt32LE(s, used, buffered)
         BinaryHelper.WriteInt32LE(s, type, buffered)
-        s.Write(namedata, 0, NAME_BYTE_LENGTH)
+        s.Write(namedata, 0, MAX_NAME_BYTE_LENGTH)
         s.Seek(RESERVE_LENGTH, SeekOrigin.Current)
         s.Write(todata, 0, TO_BYTE_LENGTH)
     End Sub
@@ -57,7 +57,7 @@ Public Class IFS1SoftLinkBlock
         End Get
         Set(value As String)
             _name = value
-            namedata = BinaryHelper.GetBytes(value, NAME_BYTE_LENGTH)
+            namedata = BinaryHelper.GetBytes(value, MAX_NAME_BYTE_LENGTH)
         End Set
     End Property
 

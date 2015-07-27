@@ -15,7 +15,7 @@ Public Class IFS1Driver
         ' ifs.Logger.WriteLine("Cleanup: " + filename)
         If TypeOf info.Context Is FileContext Then
             Dim fc = DirectCast(info.Context, FileContext)
-            If fc.options And FileOptions.DeleteOnClose Then
+            If fc.Options And FileOptions.DeleteOnClose Then
                 DeleteFile(filename, info)
             End If
         End If
@@ -27,7 +27,7 @@ Public Class IFS1Driver
         ifs.Logger.WriteLine("CloseFile: " + filename)
         If TypeOf info.Context Is FileContext Then
             Dim fc = DirectCast(info.Context, FileContext)
-            If fc.options And FileOptions.DeleteOnClose Then
+            If fc.Options And FileOptions.DeleteOnClose Then
                 DeleteFile(filename, info)
             End If
         End If
@@ -70,14 +70,14 @@ Public Class IFS1Driver
 
             Dim fc As New FileContext()
             If access And (DokanNet.FileAccess.AppendData Or DokanNet.FileAccess.Execute Or DokanNet.FileAccess.GenericExecute Or DokanNet.FileAccess.GenericRead Or DokanNet.FileAccess.GenericWrite Or DokanNet.FileAccess.ReadData Or DokanNet.FileAccess.WriteData) Then
-                fc.blk = ifs.GetBlockByPathStrict(filename)
+                fc.Block = ifs.GetBlockByPathStrict(filename)
             End If
-            fc.filename = filename
-            fc.access = access
-            fc.attributes = attributes
-            fc.mode = mode
-            fc.options = options
-            fc.share = share
+            fc.Filename = filename
+            fc.Access = access
+            fc.Attributes = attributes
+            fc.Mode = mode
+            fc.Options = options
+            fc.Share = share
             info.Context = fc
 
             Return DokanError.ErrorSuccess
@@ -192,7 +192,7 @@ Public Class IFS1Driver
             If info.Context IsNot Nothing Then
                 If TypeOf info.Context Is FileContext Then
                     Dim fc = DirectCast(info.Context, FileContext)
-                    readBytes = ifs.Read(fc.blk, buffer, offset, 0, buffer.Length)
+                    readBytes = ifs.Read(fc.Block, buffer, offset, 0, buffer.Length)
                 End If
             Else
                 readBytes = ifs.Read(filename, buffer, offset, 0, buffer.Length)
@@ -258,7 +258,7 @@ Public Class IFS1Driver
             If info.Context IsNot Nothing Then
                 If TypeOf info.Context Is FileContext Then
                     Dim fc = DirectCast(info.Context, FileContext)
-                    writtenBytes = ifs.Write(fc.blk, buffer, offset, 0, buffer.Length)
+                    writtenBytes = ifs.Write(fc.Block, buffer, offset, 0, buffer.Length)
                 End If
             Else
                 writtenBytes = ifs.Write(filename, buffer, offset, 0, buffer.Length)
@@ -269,14 +269,14 @@ Public Class IFS1Driver
         End Try
     End Function
 
-    Private Function GetBlockInfo(blk As IFS1Block) As FileInformation
+    Private Function GetBlockInfo(block As IFS1Block) As FileInformation
         Dim fi As New FileInformation
-        If ifs.opt.ReadOnlyMount Then
+        If ifs.Options.ReadOnlyMount Then
             fi.Attributes = fi.Attributes Or FileAttributes.ReadOnly
         End If
 
-        If blk.type = IFS1Block.BlockType.SoftLink Then
-            Dim softlink = DirectCast(blk, IFS1SoftLinkBlock)
+        If block.type = IFS1Block.BlockType.SoftLink Then
+            Dim softlink = DirectCast(block, IFS1SoftLinkBlock)
             Try
                 fi = GetBlockInfo(ifs.GetBlockByPath(softlink.To))
             Catch ex As Exception
@@ -290,14 +290,14 @@ Public Class IFS1Driver
             Return fi
         End If
 
-        If Not TypeOf blk Is IFS1BlockWithName Then
-            Throw New ArgumentException("blk")
+        If Not TypeOf block Is IFS1BlockWithName Then
+            Throw New ArgumentException("block")
         Else
-            fi.FileName = DirectCast(blk, IFS1BlockWithName).Name
+            fi.FileName = DirectCast(block, IFS1BlockWithName).Name
         End If
 
-        If TypeOf blk Is IFS1BlockWithTime Then
-            Dim blkwithtime = DirectCast(blk, IFS1BlockWithTime)
+        If TypeOf block Is IFS1BlockWithTime Then
+            Dim blkwithtime = DirectCast(block, IFS1BlockWithTime)
             fi.CreationTime = blkwithtime.CreationTime
             fi.LastAccessTime = blkwithtime.LastAccessTime
             fi.LastWriteTime = blkwithtime.LastWriteTime
@@ -306,14 +306,14 @@ Public Class IFS1Driver
             'a = fi.LastWriteTime.ToFileTimeUtc()
         End If
 
-        If TypeOf blk Is IFS1BlockWithLength Then
-            Dim blkwithlength = DirectCast(blk, IFS1BlockWithLength)
+        If TypeOf block Is IFS1BlockWithLength Then
+            Dim blkwithlength = DirectCast(block, IFS1BlockWithLength)
             fi.Length = blkwithlength.Length
         Else
             fi.Length = IFS1Block.BLOCK_LENGTH
         End If
 
-        If blk.type = IFS1Block.BlockType.Dir Then
+        If block.type = IFS1Block.BlockType.Dir Then
             fi.Attributes = fi.Attributes Or FileAttributes.Directory
         Else
             fi.Attributes = fi.Attributes Or FileAttributes.Normal
@@ -329,7 +329,7 @@ Public Class IFS1Driver
 
     Public Function SetFileSecurity(fileName As String, security As System.Security.AccessControl.FileSystemSecurity, sections As System.Security.AccessControl.AccessControlSections, info As DokanFileInfo) As DokanNet.DokanError Implements IDokanOperations.SetFileSecurity
         ifs.Logger.WriteLine("SetFileSecurity: " + fileName)
-        Return DokanError.ErrorError
+        Return DokanError.ErrorSuccess
     End Function
 
     Public Function GetVolumeInformation(ByRef volumeLabel As String, ByRef features As FileSystemFeatures, ByRef fileSystemName As String, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetVolumeInformation
@@ -344,21 +344,21 @@ Public Class IFS1Driver
         ElseIf TypeOf ex Is IFS1BadFileSystemException Then
             Return -114
         ElseIf TypeOf ex Is IFS1DirAlreadyExistsException Then
-            Return -1760
+            Return DokanError.ErrorAlreadyExists
         ElseIf TypeOf ex Is IFS1FileAlreadyExistsException Then
-            Return -1760
+            Return DokanError.ErrorFileExists
         ElseIf TypeOf ex Is IFS1FileNotFoundException Then
-            Return -2
+            Return DokanError.ErrorFileNotFound
         ElseIf TypeOf ex Is IFS1NoPermissionException Then
-            Return -5
+            Return DokanError.ErrorAccessDenied
         ElseIf TypeOf ex Is IFS1PathNotFoundException Then
-            Return -3
+            Return DokanError.ErrorPathNotFound
         ElseIf TypeOf ex Is IFS1TransactionCommittedException Then
-            Return -1
+            Return DokanError.ErrorError
         ElseIf TypeOf ex Is IFS1BadPathException Then
-            Return -123
+            Return DokanError.ErrorInvalidName
         ElseIf TypeOf ex Is IFS1Exception Then
-            Return -100000
+            Return DokanError.ErrorExceptionInService
         Else
             Console.WriteLine(ex.ToString())
             Throw ex

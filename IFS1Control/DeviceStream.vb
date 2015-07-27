@@ -15,7 +15,7 @@ Class DeviceStream
     ''' 每次操作的块大小
     ''' </summary>
     ''' <remarks></remarks>
-    Public Const BLOCK_LEN = 512 * 128
+    Public Const BLOCK_LEN = SECTOR_LEN * 128
 
     Private _dev As String
     Private hFile As Integer

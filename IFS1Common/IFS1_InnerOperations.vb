@@ -10,12 +10,12 @@ Partial Public Class IFS1
     ''' <returns></returns>
     ''' <remarks></remarks>
     Private Function AllocBlock() As UInt32
-        If opt.ReadOnlyMount Then
+        If Options.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
-        For i = 0 To BlocksCache.Count - 1
-            If BlocksCache(i).used = 0 Then
-                Return BlocksCache(i).id
+        For i = 0 To _blocksCache.Count - 1
+            If _blocksCache(i).used = 0 Then
+                Return _blocksCache(i).id
             End If
         Next
         Return INVALID_BLOCK_ID
@@ -27,17 +27,17 @@ Partial Public Class IFS1
     ''' <param name="count">数量</param>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Private Function AllocBlock(count As UInt32) As UInt32()
-        If opt.ReadOnlyMount Then
+    Private Function AllocBlocks(count As UInt32) As UInt32()
+        If Options.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
 
         Dim blocks(count - 1) As UInt32
         Dim index = 0
 
-        For i = 0 To BlocksCache.Count - 1
-            If BlocksCache(i).used = 0 Then
-                blocks(index) = BlocksCache(i).id
+        For i = 0 To _blocksCache.Count - 1
+            If _blocksCache(i).used = 0 Then
+                blocks(index) = _blocksCache(i).id
                 index += 1
                 If index = count Then
                     Exit For
@@ -57,12 +57,12 @@ Partial Public Class IFS1
     ''' <returns></returns>
     ''' <remarks></remarks>
     Private Function AllocBlock(exceptid As List(Of UInt32)) As UInt32
-        If opt.ReadOnlyMount Then
+        If Options.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
-        For i = 0 To BlocksCache.Count - 1
-            If BlocksCache(i).used = 0 AndAlso exceptid.IndexOf(i) < 0 Then
-                Return BlocksCache(i).id
+        For i = 0 To _blocksCache.Count - 1
+            If _blocksCache(i).used = 0 AndAlso exceptid.IndexOf(i) < 0 Then
+                Return _blocksCache(i).id
             End If
         Next
         Return INVALID_BLOCK_ID
@@ -74,17 +74,17 @@ Partial Public Class IFS1
     ''' <param name="count">数量</param>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Private Function AllocBlock(count As UInt32, exceptid As List(Of UInt32)) As UInt32()
-        If opt.ReadOnlyMount Then
+    Private Function AllocBlocks(count As UInt32, exceptid As List(Of UInt32)) As UInt32()
+        If Options.ReadOnlyMount Then
             Throw New IFS1NoPermissionException()
         End If
 
         Dim blocks(count - 1) As UInt32
         Dim index = 0
 
-        For i = 0 To BlocksCache.Count - 1
-            If BlocksCache(i).used = 0 AndAlso exceptid.IndexOf(i) < 0 Then
-                blocks(index) = BlocksCache(i).id
+        For i = 0 To _blocksCache.Count - 1
+            If _blocksCache(i).used = 0 AndAlso exceptid.IndexOf(i) < 0 Then
+                blocks(index) = _blocksCache(i).id
                 index += 1
                 If index = count Then
                     Exit For

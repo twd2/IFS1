@@ -17,6 +17,4 @@
         Return Block.type
     End Function
 
-
-
 End Class

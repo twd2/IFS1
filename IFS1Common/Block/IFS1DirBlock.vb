@@ -21,8 +21,8 @@ Public Class IFS1DirBlock
     '//64512
     'uint32				blockids[16128];			//文件/目录块ID集合. 如果为0xFFFFFFFF, 则未指向任何文件/目录块.
 
-    Public Const NAME_BYTE_LENGTH = 256
-    Private namedata(NAME_BYTE_LENGTH - 1) As Byte
+    Public Const MAX_NAME_BYTE_LENGTH = 256
+    Private namedata(MAX_NAME_BYTE_LENGTH - 1) As Byte
 
     Private create As New CMOSDateTime, change As New CMOSDateTime
 
@@ -44,7 +44,7 @@ Public Class IFS1DirBlock
         If r.type <> BlockType.Dir Then
             Throw New IFS1BadFileSystemException("Type mismatch!")
         End If
-        BinaryHelper.SafeRead(s, r.namedata, 0, NAME_BYTE_LENGTH)
+        BinaryHelper.SafeRead(s, r.namedata, 0, MAX_NAME_BYTE_LENGTH)
         r._name = BinaryHelper.GetString(r.namedata)
         r.create = CMOSDateTime.Read(s)
         r.change = CMOSDateTime.Read(s)
@@ -62,7 +62,7 @@ Public Class IFS1DirBlock
     Public Overrides Sub Write(s As Stream, buffered As Boolean)
         BinaryHelper.WriteInt32LE(s, used, buffered)
         BinaryHelper.WriteInt32LE(s, type, buffered)
-        s.Write(namedata, 0, NAME_BYTE_LENGTH)
+        s.Write(namedata, 0, MAX_NAME_BYTE_LENGTH)
         create.Write(s)
         change.Write(s)
         s.Seek(RESERVE_LENGTH, SeekOrigin.Current)
@@ -81,7 +81,7 @@ Public Class IFS1DirBlock
         End Get
         Set(value As String)
             _name = value
-            namedata = BinaryHelper.GetBytes(value, NAME_BYTE_LENGTH)
+            namedata = BinaryHelper.GetBytes(value, MAX_NAME_BYTE_LENGTH)
         End Set
     End Property
 

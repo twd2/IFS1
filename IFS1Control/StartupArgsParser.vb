@@ -1,20 +1,20 @@
 ﻿Public Class StartupArgsParser
 
-    Public shortName As New Dictionary(Of Char, String)
-    Public longName As New Dictionary(Of String, String)
+    Public shortNames As New Dictionary(Of Char, String)
+    Public fullNames As New Dictionary(Of String, String)
     Public argObjs As New Dictionary(Of String, StartupArgsInfo)
 
-    Public Sub AddArgument(name As String, sname As String, lname As String, minpc As Integer, maxpc As Integer)
-        If sname = "" AndAlso lname = "" Then
-            Throw New ArgumentNullException("sname, lname")
+    Public Sub AddArgument(name As String, shortName As String, fullName As String, minParamsCount As Integer, maxParamsCount As Integer)
+        If shortName = "" AndAlso fullName = "" Then
+            Throw New ArgumentNullException("shortName, fullName")
         End If
-        If sname <> "" Then
-            shortName.Add(sname.ToLower()(0), name)
+        If shortName <> "" Then
+            Me.shortNames.Add(shortName.ToLower()(0), name)
         End If
-        If lname <> "" Then
-            longName.Add(lname.ToLower(), name)
+        If fullName <> "" Then
+            Me.fullNames.Add(fullName.ToLower(), name)
         End If
-        argObjs.Add(name, New StartupArgsInfo(minpc, maxpc))
+        argObjs.Add(name, New StartupArgsInfo(minParamsCount, maxParamsCount))
     End Sub
 
     Public Function Parse(args As String()) As Dictionary(Of String, StartupArgsInfo)
@@ -26,13 +26,13 @@
             Dim arg = args(i)
             If arg.StartsWith("--") Then
                 Dim lname = arg.Substring(2).ToLower()
-                If Not longName.ContainsKey(lname) Then
+                If Not fullNames.ContainsKey(lname) Then
                     'Throw New StartupArgsParseException("Unknown argument """ + lname + """")
                     i += 1
                     Continue Do
                 End If
 
-                Dim obj = argObjs(longName(lname))
+                Dim obj = argObjs(fullNames(lname))
                 obj.found = True
 
                 If i + obj.minParamsCount >= args.Length Then
@@ -50,12 +50,12 @@
             ElseIf arg.StartsWith("-") Then
                 For j = 1 To arg.Length - 1
                     Dim sname = arg.ToLower()(j)
-                    If Not shortName.ContainsKey(sname) Then
+                    If Not shortNames.ContainsKey(sname) Then
                         'Throw New StartupArgsParseException("Unknown argument """ + sname + """")
                         Continue For
                     End If
 
-                    Dim obj = argObjs(shortName(sname))
+                    Dim obj = argObjs(shortNames(sname))
                     obj.found = True
 
                     If i + obj.minParamsCount >= args.Length Then

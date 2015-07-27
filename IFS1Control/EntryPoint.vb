@@ -159,7 +159,7 @@ Module EntryPoint
 
             Console.WriteLine("Making file system {0}, Length: {1}", fn, len)
 
-            IFS1.MakeFS(fn, len, False)
+            IFS1.Make(fn, len, False)
 
         Else 'Device
             If argobj("Device").params.Count <= 0 Then
@@ -177,7 +177,7 @@ Module EntryPoint
                 Using bs As New BufferedStream(ds, DeviceStream.BLOCK_LEN)
                     Dim mbr As New MBR
                     Array.Copy(My.Resources.boot, mbr.BootCode, mbr.BootCode.Length)
-                    IFS1.MakeFS(bs, ds.Length, True)
+                    IFS1.Make(bs, ds.Length, True)
                 End Using
             End Using
 
@@ -242,7 +242,7 @@ Module EntryPoint
 
         Dim memsize = ParseLength(argobj("Length").params(0))
         Using ms As New MemoryStream(memsize)
-            IFS1.MakeFS(ms, memsize, False)
+            IFS1.Make(ms, memsize, False)
             ms.Seek(0, SeekOrigin.Begin)
             Dim ifs As New IFS1(logger, ms, opt)
             Mount(ifs, argobj("MountPoint").params(0))

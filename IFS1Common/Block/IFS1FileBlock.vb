@@ -39,8 +39,8 @@ Public Class IFS1FileBlock
 
     Private _length As UInt32
 
-    Public Const NAME_BYTE_LENGTH = 256
-    Private namedata(NAME_BYTE_LENGTH - 1) As Byte
+    Public Const MAX_NAME_BYTE_LENGTH = 256
+    Private namedata(MAX_NAME_BYTE_LENGTH - 1) As Byte
 
     Private create As New CMOSDateTime, change As New CMOSDateTime
     Public propertydata As UInt32
@@ -49,6 +49,8 @@ Public Class IFS1FileBlock
     'Public reserve(736 - 1) As Byte
 
     Public Const SUB_BLOCK_COUNT = 16128
+
+    Public Const MAX_FILE_LENGTH = SUB_BLOCK_COUNT * IFS1DataBlock.DATA_LENGTH
 
     Private blockids(SUB_BLOCK_COUNT - 1) As UInt32
 
@@ -64,7 +66,7 @@ Public Class IFS1FileBlock
             Throw New IFS1BadFileSystemException("Type mismatch!")
         End If
         r._length = BinaryHelper.ReadUInt32LE(s)
-        BinaryHelper.SafeRead(s, r.namedata, 0, NAME_BYTE_LENGTH)
+        BinaryHelper.SafeRead(s, r.namedata, 0, MAX_NAME_BYTE_LENGTH)
         r._name = BinaryHelper.GetString(r.namedata)
         r.create = CMOSDateTime.Read(s)
         r.change = CMOSDateTime.Read(s)
@@ -84,7 +86,7 @@ Public Class IFS1FileBlock
         BinaryHelper.WriteInt32LE(s, used, buffered)
         BinaryHelper.WriteInt32LE(s, type, buffered)
         BinaryHelper.WriteUInt32LE(s, _length, buffered)
-        s.Write(namedata, 0, NAME_BYTE_LENGTH)
+        s.Write(namedata, 0, MAX_NAME_BYTE_LENGTH)
         create.Write(s)
         change.Write(s)
         BinaryHelper.WriteUInt32LE(s, propertydata, buffered)
@@ -104,7 +106,7 @@ Public Class IFS1FileBlock
         End Get
         Set(value As String)
             _name = value
-            namedata = BinaryHelper.GetBytes(value, NAME_BYTE_LENGTH)
+            namedata = BinaryHelper.GetBytes(value, MAX_NAME_BYTE_LENGTH)
         End Set
     End Property
 

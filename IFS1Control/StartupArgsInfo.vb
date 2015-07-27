@@ -6,10 +6,10 @@
     Public minParamsCount As Integer
     Public params As New List(Of String)
 
-    Public Sub New(minpc As Integer, maxpc As Integer)
-        maxParamsCount = maxpc
-        params.Capacity = maxpc
-        minParamsCount = minpc
+    Public Sub New(minParamsCount As Integer, maxParamsCount As Integer)
+        Me.maxParamsCount = maxParamsCount
+        params.Capacity = maxParamsCount
+        Me.minParamsCount = minParamsCount
     End Sub
 
 
