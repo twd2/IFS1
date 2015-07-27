@@ -3,7 +3,9 @@ Imports System.Runtime.InteropServices
 
 Public Class IFS1Block
 
-    Enum BlockType
+    Public Const BLOCK_LENGTH = 64 * 1024
+
+    Public Enum BlockType
         Raw
         File
         Data
@@ -23,14 +25,15 @@ Public Class IFS1Block
     Public used As Int32
     Public type As BlockType = BlockType.Raw  'Int32
 
-    Public rawdata(-1) As Byte '[65528]
+    Public Const RAWDATA_LENGTH = 65528
+    Public rawdata(-1) As Byte '[RAWDATA_LENGTH]
 
     Public Shared Function Read(s As Stream) As IFS1Block
         Dim r As New IFS1Block
         r.used = BinaryHelper.ReadInt32LE(s)
         r.type = BinaryHelper.ReadInt32LE(s)
-        ReDim r.rawdata(65528 - 1)
-        BinaryHelper.SafeRead(s, r.rawdata, 0, 65528)
+        ReDim r.rawdata(RAWDATA_LENGTH - 1)
+        BinaryHelper.SafeRead(s, r.rawdata, 0, RAWDATA_LENGTH)
         Return r
     End Function
 
@@ -47,9 +50,9 @@ Public Class IFS1Block
         BinaryHelper.WriteInt32LE(s, type, buffered)
         If rawdata.Length > 0 Then
             s.Write(rawdata, 0, rawdata.Length)
-            s.Seek(65528 - rawdata.Length, SeekOrigin.Current)
+            s.Seek(RAWDATA_LENGTH - rawdata.Length, SeekOrigin.Current)
         Else
-            s.Seek(65528, SeekOrigin.Current)
+            s.Seek(RAWDATA_LENGTH, SeekOrigin.Current)
         End If
     End Sub
 

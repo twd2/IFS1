@@ -110,8 +110,8 @@
     <Compile Include="CMOSDateTime.vb" />
     <Compile Include="Exception\IFS1AllocationFailedException.vb" />
     <Compile Include="Exception\IFS1BadPathException.vb" />
-    <Compile Include="Exception\IFS1DirAlreadyExistsException - 复制.vb" />
-    <Compile Include="Exception\IFS1PathNotFoundException - 复制.vb" />
+    <Compile Include="Exception\IFS1DirAlreadyExistsException.vb" />
+    <Compile Include="Exception\IFS1PathNotFoundException.vb" />
     <Compile Include="IFS1.vb" />
     <Compile Include="Block\IFS1Block.vb" />
     <Compile Include="Block\IFS1DataBlock.vb" />

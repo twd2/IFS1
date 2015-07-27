@@ -38,10 +38,14 @@ Public Class IFS1FileBlock
     'uint32				blockids[16128];		//数据块ID集合. 如果为0xFFFFFFFF, 则未指向任何数据块.
 
     Private _length As UInt32
-    Private namedata(256 - 1) As Byte
+
+    Public Const NAME_BYTE_LENGTH = 256
+    Private namedata(NAME_BYTE_LENGTH - 1) As Byte
+
     Private create As New CMOSDateTime, change As New CMOSDateTime
     Public propertydata As UInt32
 
+    Public Const RESERVE_LENGTH = 736
     'Public reserve(736 - 1) As Byte
 
     Public Const SUB_BLOCK_COUNT = 16128
@@ -60,12 +64,12 @@ Public Class IFS1FileBlock
             Throw New IFS1BadFileSystemException("Type mismatch!")
         End If
         r._length = BinaryHelper.ReadUInt32LE(s)
-        BinaryHelper.SafeRead(s, r.namedata, 0, 256)
+        BinaryHelper.SafeRead(s, r.namedata, 0, NAME_BYTE_LENGTH)
         r._name = BinaryHelper.GetString(r.namedata)
         r.create = CMOSDateTime.Read(s)
         r.change = CMOSDateTime.Read(s)
         r.propertydata = BinaryHelper.ReadUInt32LE(s)
-        s.Seek(736, SeekOrigin.Current) 'skip
+        s.Seek(RESERVE_LENGTH, SeekOrigin.Current) 'skip
 
         Dim blockidsdata(SUB_BLOCK_COUNT * Marshal.SizeOf(GetType(UInt32)) - 1) As Byte
         BinaryHelper.SafeRead(s, blockidsdata, 0, blockidsdata.Length)
@@ -80,11 +84,11 @@ Public Class IFS1FileBlock
         BinaryHelper.WriteInt32LE(s, used, buffered)
         BinaryHelper.WriteInt32LE(s, type, buffered)
         BinaryHelper.WriteUInt32LE(s, _length, buffered)
-        s.Write(namedata, 0, 256)
+        s.Write(namedata, 0, NAME_BYTE_LENGTH)
         create.Write(s)
         change.Write(s)
         BinaryHelper.WriteUInt32LE(s, propertydata, buffered)
-        s.Seek(736, SeekOrigin.Current)
+        s.Seek(RESERVE_LENGTH, SeekOrigin.Current)
 
         Dim blockidsdata = BinaryHelper.ToBytes(Of UInt32)(blockids)
         s.Write(blockidsdata, 0, blockidsdata.Length)
@@ -100,7 +104,7 @@ Public Class IFS1FileBlock
         End Get
         Set(value As String)
             _name = value
-            namedata = BinaryHelper.GetBytes(value)
+            namedata = BinaryHelper.GetBytes(value, NAME_BYTE_LENGTH)
         End Set
     End Property
 

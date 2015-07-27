@@ -140,12 +140,11 @@ Public Class IFS1Driver
         Return DokanError.ErrorSuccess
     End Function
 
-    Public Function GetDiskFreeSpace(ByRef freeBytesAvailable As Long, ByRef totalBytes As Long, ByRef used As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetDiskFreeSpace
-        totalBytes = ifs.CountTotalBlocks() * IFS1.BLOCK_LEN
-        used = ifs.CountUsedBlocks() * IFS1.BLOCK_LEN
-        freeBytesAvailable = totalBytes - used
-
-        used = freeBytesAvailable 'TODO: !!!
+    Public Function GetDiskFreeSpace(ByRef freeBytesAvailable As Long, ByRef totalNumberOfBytes As Long, ByRef totalNumberOfFreeBytes As Long, info As DokanFileInfo) As DokanError Implements IDokanOperations.GetDiskFreeSpace
+        totalNumberOfBytes = ifs.CountTotalBlocks() * IFS1Block.BLOCK_LENGTH
+        totalNumberOfFreeBytes = ifs.CountUsedBlocks() * IFS1Block.BLOCK_LENGTH
+        freeBytesAvailable = totalNumberOfBytes - totalNumberOfFreeBytes
+        totalNumberOfFreeBytes = freeBytesAvailable
 
         Return DokanError.ErrorSuccess
     End Function
@@ -281,7 +280,7 @@ Public Class IFS1Driver
             Try
                 fi = GetBlockInfo(ifs.GetBlockByPath(softlink.To))
             Catch ex As Exception
-                fi.Length = IFS1.BLOCK_LEN
+                fi.Length = IFS1Block.BLOCK_LENGTH
                 fi.Attributes = FileAttributes.Hidden
                 fi.CreationTime = DateTime.Now
                 fi.LastAccessTime = DateTime.Now
@@ -311,7 +310,7 @@ Public Class IFS1Driver
             Dim blkwithlength = DirectCast(blk, IFS1BlockWithLength)
             fi.Length = blkwithlength.Length
         Else
-            fi.Length = IFS1.BLOCK_LEN
+            fi.Length = IFS1Block.BLOCK_LENGTH
         End If
 
         If blk.type = IFS1Block.BlockType.Dir Then

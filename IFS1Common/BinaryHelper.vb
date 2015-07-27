@@ -249,35 +249,28 @@ Public Class BinaryHelper
     End Function
 
     Public Shared Function GetString(b As Byte()) As String
-        Dim sb As New StringBuilder
+        Dim data(255) As Byte
+        Dim index = 0
         For i = 0 To b.Length - 1
             If b(i) = 0 Then
+                index = i - 1
                 Exit For
             End If
-            sb.Append(Chr(b(i)))
+            data(i) = b(i)
         Next
-        Return sb.ToString()
+        ReDim Preserve data(index)
+        Return Encoding.UTF8.GetString(data)
     End Function
 
-    Public Shared Function GetBytes(s As String) As Byte()
-        If s.Length > 255 Then
-            Throw New Exception("String too long")
+    Public Shared Function GetBytes(s As String, maxByteLength As Integer) As Byte()
+        Dim strData = Encoding.UTF8.GetBytes(s)
+        If strData.Length >= maxByteLength Then
+            Throw New Exception("String is too long")
         End If
-        Dim data(255) As Byte
-        data(255) = 0
-        For i = 0 To s.Length - 1
-            Try
-                Dim code = Asc(s(i))
-                If code <= 255 Then
-                    data(i) = code
-                Else
-                    data(i) = Asc("x"c)
-                End If
-            Catch ex As OverflowException
-                data(i) = Asc("x"c)
-            End Try
-        Next
-        data(s.Length) = 0
+        Dim data(maxByteLength - 1) As Byte
+        data(maxByteLength - 1) = 0
+        Array.Copy(strData, data, strData.Length)
+        data(strData.Length) = 0
         Return data
     End Function
 

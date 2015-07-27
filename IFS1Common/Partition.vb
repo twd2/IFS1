@@ -16,7 +16,6 @@ Public Class Partition
     Public Const SectorMask = &H3F
     Public Const CylinderHighMask = &HC0
 
-
     Public Overloads Function ToString() As String
         Return String.Format("Type: {0}, Offset: {1}, Size: {2}", Type, CULng(SectorsPreceding) * 512, CULng(TotalSectors) * 512)
     End Function

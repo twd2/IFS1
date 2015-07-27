@@ -15,9 +15,13 @@ Public Class IFS1SoftLinkBlock
     '//65024
     'int8				to[65024];			//指向何方
 
-    Private namedata(256 - 1) As Byte
+    Public Const NAME_BYTE_LENGTH = 256
+    Private namedata(NAME_BYTE_LENGTH - 1) As Byte
 
-    Private todata(65024 - 1) As Byte
+    Public Const RESERVE_LENGTH = 248
+
+    Public Const TO_BYTE_LENGTH = 65024
+    Private todata(TO_BYTE_LENGTH - 1) As Byte
 
     Public Sub New()
         type = BlockType.SoftLink
@@ -30,10 +34,10 @@ Public Class IFS1SoftLinkBlock
         If r.type <> BlockType.SoftLink Then
             Throw New IFS1BadFileSystemException("Type mismatch!")
         End If
-        BinaryHelper.SafeRead(s, r.namedata, 0, 256)
+        BinaryHelper.SafeRead(s, r.namedata, 0, NAME_BYTE_LENGTH)
         r._name = BinaryHelper.GetString(r.namedata)
-        s.Seek(248, SeekOrigin.Current) 'skip
-        BinaryHelper.SafeRead(s, r.todata, 0, 65024)
+        s.Seek(RESERVE_LENGTH, SeekOrigin.Current) 'skip
+        BinaryHelper.SafeRead(s, r.todata, 0, TO_BYTE_LENGTH)
         r._to = BinaryHelper.GetString(r.todata)
         Return r
     End Function
@@ -41,9 +45,9 @@ Public Class IFS1SoftLinkBlock
     Public Overrides Sub Write(s As Stream, buffered As Boolean)
         BinaryHelper.WriteInt32LE(s, used, buffered)
         BinaryHelper.WriteInt32LE(s, type, buffered)
-        s.Write(namedata, 0, 256)
-        s.Seek(248, SeekOrigin.Current)
-        s.Write(todata, 0, todata.Length)
+        s.Write(namedata, 0, NAME_BYTE_LENGTH)
+        s.Seek(RESERVE_LENGTH, SeekOrigin.Current)
+        s.Write(todata, 0, TO_BYTE_LENGTH)
     End Sub
 
     Private _name As String
@@ -53,7 +57,7 @@ Public Class IFS1SoftLinkBlock
         End Get
         Set(value As String)
             _name = value
-            namedata = BinaryHelper.GetBytes(value)
+            namedata = BinaryHelper.GetBytes(value, NAME_BYTE_LENGTH)
         End Set
     End Property
 
@@ -64,7 +68,7 @@ Public Class IFS1SoftLinkBlock
         End Get
         Set(value As String)
             _to = value
-            todata = BinaryHelper.GetBytes(value)
+            todata = BinaryHelper.GetBytes(value, TO_BYTE_LENGTH)
         End Set
     End Property
 

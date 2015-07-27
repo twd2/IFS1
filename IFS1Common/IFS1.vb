@@ -17,8 +17,6 @@ Partial Public Class IFS1
 
     Public opt As New IFS1MountOptions
 
-    Public Const DATA_BLOCK_DATA_LEN = 65024
-    Public Const BLOCK_LEN = 64 * 1024
     Public Const FIRST_BLOCK_ID = 10
     Public Const INVALID_BLOCK_ID = CUInt(&HFFFFFFFFL)
     Public Const MAX_DIR_LEVEL = 4096
@@ -65,7 +63,7 @@ Partial Public Class IFS1
     Public Sub LoadBlocksCache()
         Dim sec0 = ReadSector()
         If sec0(510) = &H55 AndAlso sec0(511) = &HAA Then '第0扇区
-            _s.Seek(10 * BLOCK_LEN, SeekOrigin.Begin)
+            _s.Seek(FIRST_BLOCK_ID * IFS1Block.BLOCK_LENGTH, SeekOrigin.Begin)
         End If
         For i = 0 To FIRST_BLOCK_ID - 1
             BlocksCache.Add(New IFS1Block With {.id = i, .used = &H7FFFFFFF})
@@ -78,7 +76,7 @@ Partial Public Class IFS1
             blk = ReadBlock(False)
             blkid += 1
             If _s.Position Mod (233 * 512) = 0 Then
-                Console.Write("{0}Loading Blocks {1}/{2}                      ", Chr(13), CLng(_s.Position / BLOCK_LEN), CLng(_s.Length / BLOCK_LEN))
+                Console.Write("{0}Loading Blocks {1}/{2}                      ", Chr(13), CLng(_s.Position / IFS1Block.BLOCK_LENGTH), CLng(_s.Length / IFS1Block.BLOCK_LENGTH))
             End If
         Loop
         Console.WriteLine()
@@ -323,14 +321,14 @@ Partial Public Class IFS1
             'Dim offsetofblock = currentoffset Mod IFS1.DATA_BLOCK_DATA_LEN
 
             Dim offsetofblock As Long
-            Dim indexofid = Math.DivRem(currentoffset, IFS1.DATA_BLOCK_DATA_LEN, offsetofblock)
+            Dim indexofid = Math.DivRem(currentoffset, IFS1DataBlock.DATA_LENGTH, offsetofblock)
 
             Dim datablk As IFS1DataBlock = ReadBlockByID(blk.SubBlockIDs(indexofid))
             If datablk Is Nothing Then
                 Return readlength
             End If
 
-            Dim currentread = Math.Min(Math.Min(Math.Min(IFS1.DATA_BLOCK_DATA_LEN - offsetofblock,
+            Dim currentread = Math.Min(Math.Min(Math.Min(IFS1DataBlock.DATA_LENGTH - offsetofblock,
                                 count - readlength),
                                  blk.Length - currentoffset), datablk.Length - offsetofblock)
 
@@ -358,15 +356,15 @@ Partial Public Class IFS1
         End If
         NewTransaction("Compress " + blk.Name)
 
-        Dim oldblockcount = CUInt(Math.Ceiling(oldsize / IFS1.DATA_BLOCK_DATA_LEN)),
-         newblockcount = CUInt(Math.Ceiling(newsize / IFS1.DATA_BLOCK_DATA_LEN))
+        Dim oldblockcount = CUInt(Math.Ceiling(oldsize / IFS1DataBlock.DATA_LENGTH)),
+         newblockcount = CUInt(Math.Ceiling(newsize / IFS1DataBlock.DATA_LENGTH))
         Dim deltacount = oldblockcount - newblockcount
 
         If deltacount = 0 Then '不需要删除块
             If newsize <= 0 Then
                 Return
             End If
-            Dim newoffsetofblock = (newsize - 1) Mod IFS1.DATA_BLOCK_DATA_LEN
+            Dim newoffsetofblock = (newsize - 1) Mod IFS1DataBlock.DATA_LENGTH
             If oldblockcount > 0 Then
                 Dim lastdatablk As IFS1DataBlock = BlocksCache(blk.SubBlockIDs(oldblockcount - 1))
                 lastdatablk.Length = newoffsetofblock + 1
@@ -375,7 +373,7 @@ Partial Public Class IFS1
         Else
             If oldblockcount > 0 Then
                 Dim lastdatablk As IFS1DataBlock = BlocksCache(blk.SubBlockIDs(oldblockcount - 1))
-                lastdatablk.Length = IFS1.DATA_BLOCK_DATA_LEN
+                lastdatablk.Length = IFS1DataBlock.DATA_LENGTH
                 EnqueueBlockChange(lastdatablk)
             End If
             Dim usedid As New List(Of UInt32)
@@ -407,15 +405,15 @@ Partial Public Class IFS1
         End If
         NewTransaction("Expand " + blk.Name)
 
-        Dim oldblockcount = CUInt(Math.Ceiling(oldsize / IFS1.DATA_BLOCK_DATA_LEN)),
-         newblockcount = CUInt(Math.Ceiling(newsize / IFS1.DATA_BLOCK_DATA_LEN))
+        Dim oldblockcount = CUInt(Math.Ceiling(oldsize / IFS1DataBlock.DATA_LENGTH)),
+         newblockcount = CUInt(Math.Ceiling(newsize / IFS1DataBlock.DATA_LENGTH))
         Dim deltacount = newblockcount - oldblockcount
 
         If deltacount = 0 Then '不需要新分配块
             If newsize <= 0 Then
                 Return
             End If
-            Dim newoffsetofblock = (newsize - 1) Mod IFS1.DATA_BLOCK_DATA_LEN
+            Dim newoffsetofblock = (newsize - 1) Mod IFS1DataBlock.DATA_LENGTH
             If oldblockcount > 0 Then
                 Dim lastdatablk As IFS1DataBlock = BlocksCache(blk.SubBlockIDs(oldblockcount - 1))
                 lastdatablk.Length = newoffsetofblock + 1
@@ -424,7 +422,7 @@ Partial Public Class IFS1
         Else
             If oldblockcount > 0 Then
                 Dim lastdatablk As IFS1DataBlock = BlocksCache(blk.SubBlockIDs(oldblockcount - 1))
-                lastdatablk.Length = IFS1.DATA_BLOCK_DATA_LEN
+                lastdatablk.Length = IFS1DataBlock.DATA_LENGTH
                 EnqueueBlockChange(lastdatablk)
             End If
 
@@ -440,9 +438,9 @@ Partial Public Class IFS1
                 Dim datablk As New IFS1DataBlock(zerodata)
                 datablk.id = newblkid
                 If i < newblockcount - 1 Then
-                    datablk.Length = IFS1.DATA_BLOCK_DATA_LEN
+                    datablk.Length = IFS1DataBlock.DATA_LENGTH
                 Else
-                    Dim newoffsetofblock = (newsize - 1) Mod IFS1.DATA_BLOCK_DATA_LEN
+                    Dim newoffsetofblock = (newsize - 1) Mod IFS1DataBlock.DATA_LENGTH
                     datablk.Length = newoffsetofblock + 1
                 End If
 
@@ -500,7 +498,7 @@ Partial Public Class IFS1
             Debug.Assert(currentoffset < blk.Length)
 
             Dim offsetofblock As Long
-            Dim indexofid = Math.DivRem(currentoffset, IFS1.DATA_BLOCK_DATA_LEN, offsetofblock)
+            Dim indexofid = Math.DivRem(currentoffset, IFS1DataBlock.DATA_LENGTH, offsetofblock)
 
             Dim datablk As IFS1DataBlock
             ''这里需要先从缓存中读取Block, 否则上次写入的Block会丢失
@@ -511,7 +509,7 @@ Partial Public Class IFS1
 
             Debug.Assert(datablk IsNot Nothing)
 
-            Dim currentwrite = Math.Min(Math.Min(Math.Min(IFS1.DATA_BLOCK_DATA_LEN - offsetofblock,
+            Dim currentwrite = Math.Min(Math.Min(Math.Min(IFS1DataBlock.DATA_LENGTH - offsetofblock,
                                 count - writtenlength),
                                  blk.Length - currentoffset), datablk.Length - offsetofblock)
 
@@ -860,7 +858,7 @@ Partial Public Class IFS1
             Throw New IFS1NoPermissionException()
         End If
 
-        Using ms As New MemoryStream(BLOCK_LEN)
+        Using ms As New MemoryStream(IFS1Block.BLOCK_LENGTH)
             blk.Write(ms, False)
             SeekBlock(blk.id, SeekOrigin.Begin)
             'blk.Write(_s) 
@@ -881,7 +879,7 @@ Partial Public Class IFS1
     End Function
 
     Public Sub SeekBlock(id As UInt32, so As SeekOrigin)
-        _s.Seek(id * BLOCK_LEN, so)
+        _s.Seek(id * IFS1Block.BLOCK_LENGTH, so)
     End Sub
 
     Public HeaderLength As New Dictionary(Of IFS1Block.BlockType, Int32) From {
@@ -894,10 +892,10 @@ Partial Public Class IFS1
     Public Const FIRST_READ_LEN = 512
 
     'TODO: 多线程的话不能用一个cacheMS
-    Private _cacheMS As New MemoryStream(BLOCK_LEN)
+    Private _cacheMS As New MemoryStream(IFS1Block.BLOCK_LENGTH)
 
     Public Function ReadBlock(Optional readdata As Boolean = True) As IFS1Block
-        If _s.Length - _s.Position < BLOCK_LEN Then
+        If _s.Length - _s.Position < IFS1Block.BLOCK_LENGTH Then
             Return Nothing
         End If
 
@@ -914,7 +912,7 @@ Partial Public Class IFS1
 
         '读取剩下的
         If readdata Then '读取数据的话就把整个Block读取
-            Dim buffer2(BLOCK_LEN - FIRST_READ_LEN - 1) As Byte
+            Dim buffer2(IFS1Block.BLOCK_LENGTH - FIRST_READ_LEN - 1) As Byte
             BinaryHelper.SafeRead(_s, buffer2, 0, buffer2.Length)
             _cacheMS.Write(buffer2, 0, buffer2.Length)
         ElseIf HeaderLength.ContainsKey(type) Then  '否则只读取头部分
@@ -922,7 +920,7 @@ Partial Public Class IFS1
             BinaryHelper.SafeRead(_s, buffer2, 0, buffer2.Length)
             _cacheMS.Write(buffer2, 0, buffer2.Length)
         End If
-        _s.Seek(BLOCK_LEN - _cacheMS.Position, SeekOrigin.Current)
+        _s.Seek(IFS1Block.BLOCK_LENGTH - _cacheMS.Position, SeekOrigin.Current)
         _cacheMS.Seek(0, SeekOrigin.Begin)
         '_s.Seek(4, SeekOrigin.Current) 'skip used
         'Dim type = BinaryHelper.ReadInt32LE(_s)
@@ -1115,7 +1113,7 @@ Partial Public Class IFS1
     Public Shared Sub MakeFS(s As Stream, length As ULong, writePreserve As Boolean, Optional mbr As MBR = Nothing)
         Dim Logger As New LoggerWrapper(Console.Out)
 
-        Dim blockcount = Math.Floor(length / BLOCK_LEN)
+        Dim blockcount = Math.Floor(length / IFS1Block.BLOCK_LENGTH)
 
         If mbr IsNot Nothing Then
             Dim sec0 = BinaryHelper.StructToBytes(Of MBR)(mbr)
@@ -1133,8 +1131,8 @@ Partial Public Class IFS1
         For i = 0 To rootblock.SubBlockIDs.Length - 1
             rootblock.SubBlockIDs(i) = INVALID_BLOCK_ID
         Next
-        s.Seek(FIRST_BLOCK_ID * BLOCK_LEN, SeekOrigin.Begin)
-        Using ms As New MemoryStream(BLOCK_LEN)
+        s.Seek(FIRST_BLOCK_ID * IFS1Block.BLOCK_LENGTH, SeekOrigin.Begin)
+        Using ms As New MemoryStream(IFS1Block.BLOCK_LENGTH)
             rootblock.Write(ms, True)
             If writePreserve Then
                 ms.Seek(511, SeekOrigin.Begin)
@@ -1152,8 +1150,8 @@ Partial Public Class IFS1
         For i = FIRST_BLOCK_ID + 1 To blockcount - 1
             Dim block As New IFS1Block
             block.used = 0
-            s.Seek(i * BLOCK_LEN, SeekOrigin.Begin)
-            Using ms As New MemoryStream(BLOCK_LEN)
+            s.Seek(i * IFS1Block.BLOCK_LENGTH, SeekOrigin.Begin)
+            Using ms As New MemoryStream(IFS1Block.BLOCK_LENGTH)
                 block.Write(ms, True)
                 If writePreserve Then
                     ms.Seek(511, SeekOrigin.Begin)
